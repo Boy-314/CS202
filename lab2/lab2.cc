@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <map>
@@ -12,13 +13,19 @@ B: CPU burst
 C: total CPU time needed
 M: I/O burst = CPU burst * M
 */
-struct proccess
+struct process
 {
 	int A;
 	int B;
 	int C;
 	int M;
 };
+
+// function for comparing two processes for sorting
+bool process_sorter(process const& left, process const& right)
+{
+	return left.A < right.A;
+}
 
 /*
 reads a random non-negative integer X from a file named random-numbers and
@@ -54,16 +61,43 @@ int randomOS(int U)
 int main(int argc, char ** argv)
 {
 	// open file
-	ifstream in(argv[1]);
+	ifstream inputFile(argv[1]);
 	
 	// get number of processes
 	int NumOfProcesses;
-	in >> NumOfProcesses;
-	cout << NumOfProcesses << endl;
+	inputFile >> NumOfProcesses;
+	
+	vector<process> processesVector;
+	for(int i = 0; i < NumOfProcesses; i++)
+	{
+		int A,B,C,M;
+		inputFile >> A >> B >> C >> M;
+		processesVector.push_back({A,B,C,M});
+	}
+	
+	// output original input
+	cout << "The original input was:\t" << NumOfProcesses;
+	for(int i = 0; i < processesVector.size(); i++)
+	{
+		cout << " (" << processesVector[i].A << " " << processesVector[i].B << " " << processesVector[i].C << " " << processesVector[i].M << ")";
+	}
+	cout << endl;
+	
+	// sort processesVector
+	stable_sort(processesVector.begin(),processesVector.end(),&process_sorter);
+	
+	// output sorted input
+	cout << "The (sorted) input is:\t" << NumOfProcesses;
+	for(int i = 0; i < processesVector.size(); i++)
+	{
+		cout << " (" << processesVector[i].A << " " << processesVector[i].B << " " << processesVector[i].C << " " << processesVector[i].M << ")";
+	}
+	cout << endl;
 	
 	// verbose option
 	if(argc == 3 && (string(argv[2]) == "-verbose" || (string(argv[2]) == "--verbose")))
 	{
+		cout << endl << "This detailed printout gives the state and remaining burst for each process" << endl << endl;
 	}
 	
 	// regular option
