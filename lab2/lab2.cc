@@ -12,6 +12,7 @@ A: arrival time of the process
 B: CPU burst
 C: total CPU time needed
 M: I/O burst = CPU burst * M
+status: unstarted, ready, running, blocked, terminated
 */
 struct process
 {
@@ -19,12 +20,36 @@ struct process
 	int B;
 	int C;
 	int M;
+	string status;
 };
 
 // function for comparing two processes for sorting
 bool process_sorter(process const& left, process const& right)
 {
 	return left.A < right.A;
+}
+
+// FCFS -verbose
+void vFCFS(vector<process> pVector)
+{
+	/*
+	int cycle = 0
+	loop(not all processes finished running)
+	{
+		cout << "Before cycle \t" << cycle << ": \t";
+		loop(iterate through each process p)
+		{
+			if(p.status == "unstarted")
+			{
+				p.status == "ready";
+			}
+			if(p.status == "ready" && p.A == cycle)
+			{
+				p.status = "running";
+			}
+		}
+	}
+	*/
 }
 
 /*
@@ -72,7 +97,7 @@ int main(int argc, char ** argv)
 	{
 		int A,B,C,M;
 		inputFile >> A >> B >> C >> M;
-		processesVector.push_back({A,B,C,M});
+		processesVector.push_back({A,B,C,M,"unstarted"});
 	}
 	
 	// output original input
@@ -97,19 +122,8 @@ int main(int argc, char ** argv)
 	// verbose option
 	if(argc == 3 && (string(argv[2]) == "-verbose" || (string(argv[2]) == "--verbose")))
 	{
-		cout << endl << "This detailed printout gives the state and remaining burst for each process" << endl << endl;
-		cout << "Before cycle \t 0: \t";
-		int cycle = 0;
-		for(int i = 0; i < processesVector.size(); i++)
-		{
-			if(processesVector[i].C != 0)
-			{
-				if(processesVector[i].A == cycle)
-				{
-					
-				}
-			}
-		}
+		cout << endl << "This detalied printout gives the state and remaining burst for each process" << endl << endl;
+		vFCFS(processesVector);
 	}
 	
 	// regular option
