@@ -98,6 +98,18 @@ int main(int argc, char ** argv)
 	if(argc == 3 && (string(argv[2]) == "-verbose" || (string(argv[2]) == "--verbose")))
 	{
 		cout << endl << "This detailed printout gives the state and remaining burst for each process" << endl << endl;
+		cout << "Before cycle \t 0: \t";
+		int cycle = 0;
+		for(int i = 0; i < processesVector.size(); i++)
+		{
+			if(processesVector[i].C != 0)
+			{
+				if(processesVector[i].A == cycle)
+				{
+					
+				}
+			}
+		}
 	}
 	
 	// regular option
