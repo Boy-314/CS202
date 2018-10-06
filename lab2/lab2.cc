@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <map>
 #include <string>
@@ -7,20 +8,49 @@
 using namespace std;
 
 /*
+output:
+	for each process:
+		A, B, C, and M
+		Finishing time
+		Turnaround time (finishing time - A)
+		I/O time (time in blocked state)
+		Waiting time (time in ready state)
+	summary data:
+		finishing time (when all processes have finished)
+		CPU utilization (percentage of time some job is running)
+		I/O utilization (percentage of time some job is blocked)
+		Throughput, expressed in processes completed per hundred time units
+		average turnaround time
+		average waiting time
+*/
+
+bool verbose;
+
+/*
 struct for processes
+
+order: for tiebreaking
 A: arrival time of the process
 B: CPU burst = randomOS(B)
 	if(randomOS(B) > CPU time remaining) {CPU burst = remaining time}
 C: total CPU time needed
 M: I/O burst = preceding CPU burst * M
+cycle: cycle number
 status: unstarted, ready, running, blocked, terminated
 */
 struct process
 {
+	int order;
 	int A;
 	int B;
 	int C;
 	int M;
+	int finishTime;
+	int turnaroundTime;
+	int ioTime;
+	int waitingTime;
+	int cpuTimeLeft;
+	int quantum;
 	string status;
 };
 
@@ -61,120 +91,84 @@ int randomOS(int U)
 	return finalRandomNumber;
 }
 
-// verbose first come first serve algorithm
-int cycle;
-int ioTime;
-int waitingTime;
-void vFCFS(vector<process> pVector)
+// update method used in each iteration
+void update(int cycle, vector<process> p)
 {
-	cycle = 0;
-	ioTime = 0;
-	waitingTime = 0;
-	cout << endl << "This detalied printout gives the state and remaining burst for each process" << endl << endl;
-	cout << "Before cycle \t " << cycle << ": \t" << pVector[0].status << " 0.\n";
-	cycle++;
-	int cpuTime = pVector[0].C;
-	int cpuBurst = randomOS(pVector[0].B);
-	int ioBurst = cpuBurst * pVector[0].M;
-	while(cpuTime != 0)
+	for(int i = 0; i < p.size(); i++)
 	{
-		int currentCPUBurst = cpuBurst;
-		int currentIOBurst = ioBurst;
-
-		// change status to running, run cpu burst, decrement cpuBurst
-		while(currentCPUBurst != 0)
+		if(p[i].status == "unstarted" && p[i].A == cycle)
 		{
-			pVector[0].status = "running";
-			cout << "Before cycle \t " << cycle << ": \t" << pVector[0].status << " " << currentCPUBurst << "." << endl;
-			currentCPUBurst--;
+			p[i].status = "ready";
 		}
-		cycle++;
-		cpuTime--;
-		
-		// if cpuTime = 0, stop
-		if(cpuTime == 0)
-		{
-			cycle--;
-			break;
-		}
-		
-		// if cpuBurst == 0, pVector[0].status = blocked, begin i/o burst	
-		while(currentIOBurst != 0)
-		{
-			pVector[0].status = "blocked";
-			cout << "Before cycle \t " << cycle << ": \t" << pVector[0].status << " " << currentIOBurst << "." << endl;
-			currentIOBurst--;
-			ioTime++;
-		}
-		cycle++;
 	}
 }
 
-// regular FCFS
+// verbose print method
+void verboseOutput(int cycle, vector<process> p)
+{
+	cout << endl;
+	cout << "Before cycle" << setw(5) << cycle << ":";
+	for(int i = 0; i < p.size(); i++)
+	{
+		cout << setw(12) << p[i].status;
+		if(p[i].status == "unstarted")
+		{
+			cout << setw(3) << "0" << setw(5);
+		}
+		if(p[i].status == "ready")
+		{
+			cout << setw(7) << "0" << setw(5);
+		}
+		if(p[i].status == "running")
+		{
+			cout << setw(5) << p[i].cpuTimeLeft + 1 << setw(5);
+		}
+		if(p[i].status == "blocked")
+		{
+			cout << setw(5) << p[i].ioTime + 1 << setw(5);
+		}
+		if(p[i].status == "terminated")
+		{
+			cout << setw(2) << "0" << setw(5);
+		}
+	}
+	cout << endl;
+}
+
+// first come first serve
 void FCFS(vector<process> pVector)
 {
-	vector<int> turnaroundVector;
-	vector<int> waitingtimeVector;
-	cout << "The scheduling algorithm used was First Come First Served\n\n";
-	for(int i = 0; i < pVector.size(); i++)
+	int cycle = -1;
+	int finishedProcesses = 0;
+	while(finishedProcesses != pVector.size())
 	{
-		cout << "Process " << i << ":\n\t";
-		cout << "(A,B,C,M) = (" << pVector[i].A << "," << pVector[i].B << "," << pVector[i].C << "," << pVector[i].M << ")\n\t";
-		cout << "Finishing time: " << cycle << "\n\t";
-		cout << "Turnaround time: " << cycle - pVector[i].A << "\n\t";
-		turnaroundVector.push_back(cycle - pVector[i].A);
-		cout << "I/O time: " << ioTime << "\n\t";
-		cout << "Waiting time: " << waitingTime << "\n\n";
-		waitingtimeVector.push_back(waitingTime);
+		cycle++;
+		if(verbose == true)
+		{
+			verboseOutput(cycle, pVector);
+		}
 	}
-	
-	double cpuU = (double)(cycle - ioTime)/(double)cycle;
-	double ioU = (double)ioTime/(double)cycle;
-	
-	cout << "Summary Data:\n\t";
-	cout << "Finishing time: " << cycle << "\n\t";
-	cout << "CPU Utilization: " << cpuU << "\n\t";
-	cout << "I/O Utilization: " << ioU << "\n\t";
-	cout << "Throughput: " << 100.0/cycle << " processes per hundred cycles" << "\n\t";
-	
-	// TODO: fix code for average turnaround time and average waiting time, dont use global variables
-	int turnaroundSum = 0;
-	for(int i = 0; i < turnaroundVector.size(); i++)
-	{
-		turnaroundSum += turnaroundVector[i];
-	}
-	double averageTurnaround = (double)turnaroundSum/turnaroundVector.size();
-	cout << "Average turnaround time: " << averageTurnaround << "\n\t";
-	int waitingSum = 0;
-	for(int i = 0; i < waitingtimeVector.size(); i++)
-	{
-		waitingSum += waitingtimeVector[i];
-	}
-	double averageWaitingtime = (double)waitingSum/waitingtimeVector.size();
-	cout << "Average waiting time: " << averageWaitingtime;
 }
 
-/*
-output:
-	for each process:
-		A, B, C, and M
-		Finishing time
-		Turnaround time (finishing time - A)
-		I/O time (time in blocked state)
-		Waiting time (time in ready state)
-	summary data:
-		finishing time (when all processes have finished)
-		CPU utilization (percentage of time some job is running)
-		I/O utilization (percentage of time some job is blocked)
-		Throughput, expressed in processes completed per hundred time units
-		average turnaround time
-		average waiting time
-*/
+// round robin, quantum 2
+void roundRobin(vector<process> pVector)
+{
+}
+
+// last come first serve
+void LCFS(vector<process> pVector)
+{
+}
+
+// HPRN
+void HPRN(vector<process> pVector)
+{
+}
 
 int main(int argc, char ** argv)
 {
 	// open file
-	ifstream inputFile(argv[1]);
+	ifstream inputFile(argv[2]);
 	
 	// get number of processes
 	int NumOfProcesses;
@@ -185,7 +179,7 @@ int main(int argc, char ** argv)
 	{
 		int A,B,C,M;
 		inputFile >> A >> B >> C >> M;
-		processesVector.push_back({A,B,C,M,"unstarted",-1});
+		processesVector.push_back({i,A,B,C,M,0,0,0,0,0,2,"unstarted"});
 	}
 	
 	// output original input
@@ -208,15 +202,23 @@ int main(int argc, char ** argv)
 	cout << endl;
 	
 	// verbose option
-	if(argc == 3 && (string(argv[2]) == "-verbose" || (string(argv[2]) == "--verbose")))
+	if(argc == 3 && (string(argv[1]) == "-verbose" || (string(argv[1]) == "--verbose")))
 	{
-		vFCFS(processesVector);
+		verbose = true;
 		FCFS(processesVector);
+		// RoundRobin();
+		// LCFS();
+		// HPRN();
 	}
 	
 	// regular option
 	else if(argc == 2)
 	{
+		verbose = false;
+		FCFS(processesVector);
+		// roundRobin();
+		// LCFS();
+		// vHPRN();
 	}
 	
 	// invalid command line arguments
