@@ -22,7 +22,6 @@ struct process
 	int C;
 	int M;
 	string status;
-	int advanceTime;
 };
 
 // function for comparing two processes for sorting
@@ -136,7 +135,7 @@ void FCFS(vector<process> pVector)
 	cout << "Finishing time: " << cycle << "\n\t";
 	cout << "CPU Utilization: " << cpuU << "\n\t";
 	cout << "I/O Utilization: " << ioU << "\n\t";
-	cout << "Throughput: " << 100.0/cycle << "processes per hundred cycles" << "\n\t";
+	cout << "Throughput: " << 100.0/cycle << " processes per hundred cycles" << "\n\t";
 	
 	// TODO: fix code for average turnaround time and average waiting time, dont use global variables
 	int turnaroundSum = 0;
