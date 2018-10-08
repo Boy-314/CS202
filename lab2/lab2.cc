@@ -61,6 +61,10 @@ struct process
 // function for comparing two processes for sorting
 bool process_sorter(process const& left, process const& right)
 {
+	if(left.A == right.A)
+	{
+		return left.order < right.order;
+	}
 	return left.A < right.A;
 }
 
@@ -133,30 +137,10 @@ void FCFS(vector<process> pVector)
 	int cycle = 0;
 	bool busy = false;
 	vector<process> blocked;
+	vector<process> ready;
 	queue<process> readyQ;
 	
-	/*
-	while not all processes are finished
-		iterate through blocked array
-			if process in blocked array finished io burst
-				push it onto the ready queue, remove it from the blocked vector
-			else
-				decrement ioBurst and increment ioTotalTime
-		iterate through all processes
-			if process status is unstarted and process has already arrived
-				set status to ready, push on to ready queue, increment waiting time
-			if cpu is not busy
-				if process at the front of the ready queue has arrived
-					set process status to running, pop it off the ready queue, and set cpu to busy
-			if process is running
-				if process runs out of cpu burst time
-					add it to the blocked vector, set status to blocked, change cpu to not busy
-				else
-					decrement cpu burst time left, and C
-			if process finishes total cpu time
-				set status to terminated and increment total finished processes
-		cycle++
-	*/
+	// while not all processes are finished
 	while(totalFinishedProcesses != pVector.size())
 	{
 		// if verbose mode is active, print out verbose information
@@ -165,103 +149,125 @@ void FCFS(vector<process> pVector)
 			verboseOutput(cycle,pVector);
 		}
 		
-		// check blocked vector to see if any processes can be moved to the ready queue
-		for(int j = 0; j < blocked.size(); j++)
+		// if cpu isnt busy and there is something in the ready queue
+		if(!busy && !readyQ.empty())
 		{
-			// find corresponding element in pVector
-			int index = -1;
-			for(int k = 0; k < pVector.size(); k++)
+			// find corresponding index in pVector
+			int index = 0;
+			while(pVector[index].order != readyQ.front().order)
 			{
-				if(blocked[j].order == pVector[k].order)
-				{
-					index = k;
-				}
+				index++;
 			}
-						
-			// -1 ioBurst for all processes in blocked array
+			
+			// set process at front of ready queue status to running
+			pVector[index].status = "running";
+			
+			// pop it off the ready queue
+			readyQ.pop();
+			
+			// set cpu to busy
+			busy = true;
+		}
+		
+		// iterate through blocked array
+		for(int i = 0; i < blocked.size(); i++)
+		{
+			// find corresponding index in pVector
+			int index = 0;
+			while(pVector[index].order != blocked[i].order)
+			{
+				index++;
+			}
+			
+			// if process is done with io
+			if(blocked[i].ioBurst <= 0)
+			{
+				// add to vector of processes that are ready
+				ready.push_back(blocked[i]);
+			}
+			
+			// sort vector of processes that are ready
+			stable_sort(ready.begin(),ready.end(),&process_sorter);
+			
+			// decrement ioBurst and increment ioTotalTime
 			pVector[index].ioBurst--;
 			pVector[index].ioTotalTime++;
 			
-			// if process in blocked array has finished io burst
+			// if process finished io burst
 			if(pVector[index].ioBurst <= 0)
 			{
-				readyQ.push(pVector[index]);
+				// set status to ready
 				pVector[index].status = "ready";
+				
+				// push on to ready queue
+				readyQ.push(pVector[index]);
+				
+				// remove from blocked vector
 				blocked.erase(blocked.begin() + index);
 			}
 		}
 		
-		// iterate through processes
+		// iterate through each process
 		for(int i = 0; i < pVector.size(); i++)
-		{	
-			// if process is unstarted and has arrived
-			if(pVector[i].status == "unstarted" && pVector[i].A <= cycle)
+		{
+			// if process finishes all cpu time
+			if(pVector[i].C <= 0)
 			{
-				pVector[i].status = "ready";
-				readyQ.push(pVector[i]);
-				pVector[i].waitingTime++;
+				// set status to terminated
+				pVector[i].status = "terminated";
+				
+				// increment total processes finished
+				totalFinishedProcesses++;
+				continue;
 			}
-			
-			// if cpu is not busy
-			if(!busy && !readyQ.empty())
-			{
-				process temp = readyQ.front();
-				int index = -1;
-				for(int j = 0; j < pVector.size(); j++)
-				{
-					if(pVector[j].order == temp.order)
-					{
-						index = j;
-					}
-				}
-				pVector[index].status = "running";
-				readyQ.pop();
-				busy = true;
-			}
-			
-			cout << "\nstatus: " << pVector[0].status << endl;
-			cout << "burst left: " << pVector[0].cpuBurstTimeLeft << endl;
 			
 			// if process is running
 			if(pVector[i].status == "running")
 			{
-				// if process runs out of cpu burst time
+				// decrement cpu burst time left and C
+				pVector[i].cpuBurstTimeLeft--;
+				pVector[i].C--;
+				
+				// if cpuBurstTime is up
 				if(pVector[i].cpuBurstTimeLeft <= 0)
 				{
-					blocked.push_back(pVector[i]);
+					// set status to blocked
 					pVector[i].status = "blocked";
+					
+					// reset cpuBurstTimeLeft
 					pVector[i].cpuBurstTimeLeft = pVector[i].cpuBurst;
+					
+					// add to blocked vector
+					blocked.push_back(pVector[i]);
+					
+					// change cpu to not blocked
 					busy = false;
+					continue;
+				}
+			}
+			
+			// if process is unstarted
+			if(pVector[i].status == "unstarted")
+			{
+				// if process has arrived
+				if(pVector[i].A <= cycle)
+				{
+					// set status to ready
+					pVector[i].status = "ready";
+					
+					// push to ready queue
+					readyQ.push(pVector[i]);
 				}
 				
-				// if process still has cpu burst time
+				// increment waitingTime
 				else
 				{
-					cout << "working\n";
-					pVector[i].cpuBurstTimeLeft--;
-					pVector[i].C--;
+					pVector[i].waitingTime++;
 				}
 			}
-			
-			// if process finishes total cpu time
-			if(pVector[i].C <= 0)
-			{
-				pVector[i].status = "terminated";
-				pVector[i].finishTime = cycle;
-				pVector[i].turnaroundTime = cycle - pVector[i].A;
-				totalFinishedProcesses++;
-			}
-			
-			for(int i = 0; i < pVector.size(); i++)
-			{
-				cout << endl << "i: " << i << ", " << pVector[i].status << ", " << "cpu: " << pVector[i].cpuBurstTimeLeft << ", " << "io: " << pVector[i].ioBurst << endl;
-			}
 		}
+		
 		cycle++;
-		if(cycle > 25)
-		{
-			break;
-		}
 	}
 }
 
