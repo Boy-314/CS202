@@ -194,16 +194,16 @@ void FCFS(vector<process> pVector)
 			pVector[index].ioTotalTime++;
 			
 			// if process finished io burst
-			if(pVector[index].ioBurst <= 0)
-			{
+			if(ready[0].ioBurst <= 0)
+			{	
 				// set status to ready
-				pVector[index].status = "ready";
+				pVector[ready[i].order].status = "ready";
 				
 				// push on to ready queue
-				readyQ.push(pVector[index]);
+				readyQ.push(pVector[ready[i].order]);
 				
 				// remove from blocked vector
-				blocked.erase(blocked.begin() + index);
+				blocked.erase(blocked.begin() + ready[i].order);
 			}
 		}
 		
