@@ -102,8 +102,10 @@ int randomOS(int U)
 // verbose print method
 void verboseOutput(int cycle, vector<process> p)
 {
+	// cout << "\nbefore" << endl;
 	cout << endl;
 	cout << "Before cycle" << setw(5) << cycle << ":";
+	// cout << "\nafter" << endl;
 	for(int i = 0; i < p.size(); i++)
 	{
 		cout << setw(12) << p[i].status;
@@ -143,12 +145,6 @@ void FCFS(vector<process> pVector)
 	// while not all processes are finished
 	while(totalFinishedProcesses != pVector.size())
 	{
-		// if verbose mode is active, print out verbose information
-		if(verbose == true)
-		{
-			verboseOutput(cycle,pVector);
-		}
-		
 		// if cpu isnt busy and there is something in the ready queue
 		if(!busy && !readyQ.empty())
 		{
@@ -169,7 +165,13 @@ void FCFS(vector<process> pVector)
 			busy = true;
 		}
 		
-		// iterate through blocked array
+		// if verbose mode is active, print out verbose information
+		if(verbose == true)
+		{
+			verboseOutput(cycle,pVector);
+		}
+		
+		// iterate through blocked vector
 		for(int i = 0; i < blocked.size(); i++)
 		{
 			// find corresponding index in pVector
@@ -179,37 +181,52 @@ void FCFS(vector<process> pVector)
 				index++;
 			}
 			
-			// if process is done with io
-			if(blocked[i].ioBurst <= 0)
-			{
-				// add to vector of processes that are ready
-				ready.push_back(blocked[i]);
-			}
-			
-			// sort vector of processes that are ready
-			stable_sort(ready.begin(),ready.end(),&process_sorter);
-			
 			// decrement ioBurst and increment ioTotalTime
 			pVector[index].ioBurst--;
 			pVector[index].ioTotalTime++;
 			
-			// if process finished io burst
-			if(ready[0].ioBurst <= 0)
-			{	
-				// set status to ready
-				pVector[ready[i].order].status = "ready";
-				
-				// push on to ready queue
-				readyQ.push(pVector[ready[i].order]);
-				
-				// remove from blocked vector
-				blocked.erase(blocked.begin() + ready[i].order);
+			// if process is done with io
+			if(pVector[index].ioBurst <= 0)
+			{
+				// add to vector of processes that are ready
+				ready.push_back(pVector[index]);
 			}
+			
+			// sort vector of processes that are ready
+			stable_sort(ready.begin(),ready.end(),&process_sorter);
+		}
+		
+		// iterate through ready vector
+		for(int i = 0; i < ready.size(); i++)
+		{
+			// find corresponding index in pVector
+			int index = 0;
+			while(pVector[index].order != ready[i].order)
+			{
+				index++;
+			}
+			
+			// find corresponding index in blocked vector
+			int indexBlocked = 0;
+			while(blocked[indexBlocked].order != ready[indexBlocked].order)
+			{
+				indexBlocked++;
+			}
+			
+			// set status to ready
+			pVector[index].status = "ready";
+			
+			// push onto ready queue
+			readyQ.push(pVector[index]);
+			
+			// remove from blocked vector
+			blocked.erase(blocked.begin() + indexBlocked);
 		}
 		
 		// iterate through each process
 		for(int i = 0; i < pVector.size(); i++)
 		{
+			// cout << "\ntesting\n";
 			// if process finishes all cpu time
 			if(pVector[i].C <= 0)
 			{
@@ -265,6 +282,22 @@ void FCFS(vector<process> pVector)
 					pVector[i].waitingTime++;
 				}
 			}
+		}
+		
+		// if nothing is running, increment cycle and continue
+		bool running = false;
+		for(int i = 0; i < pVector.size(); i++)
+		{
+			if(pVector[i].status == "running")
+			{
+				running = true;
+			}
+		}
+		
+		if(!running)
+		{
+			cycle++;
+			continue;
 		}
 		
 		cycle++;
