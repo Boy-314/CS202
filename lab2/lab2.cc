@@ -102,10 +102,8 @@ int randomOS(int U)
 // verbose print method
 void verboseOutput(int cycle, vector<process> p)
 {
-	// cout << "\nbefore" << endl;
 	cout << endl;
 	cout << "Before cycle" << setw(5) << cycle << ":";
-	// cout << "\nafter" << endl;
 	for(int i = 0; i < p.size(); i++)
 	{
 		cout << setw(12) << p[i].status;
@@ -145,6 +143,7 @@ void FCFS(vector<process> pVector)
 	// while not all processes are finished
 	while(totalFinishedProcesses != pVector.size())
 	{
+		// cout << endl << busy << "," << readyQ.empty() << endl;
 		// if cpu isnt busy and there is something in the ready queue
 		if(!busy && !readyQ.empty())
 		{
@@ -174,6 +173,7 @@ void FCFS(vector<process> pVector)
 		// iterate through blocked vector
 		for(int i = 0; i < blocked.size(); i++)
 		{
+			cout << endl << blocked.size() << endl;
 			// find corresponding index in pVector
 			int index = 0;
 			while(pVector[index].order != blocked[i].order)
@@ -226,7 +226,6 @@ void FCFS(vector<process> pVector)
 		// iterate through each process
 		for(int i = 0; i < pVector.size(); i++)
 		{
-			// cout << "\ntesting\n";
 			// if process finishes all cpu time
 			if(pVector[i].C <= 0)
 			{
@@ -235,7 +234,8 @@ void FCFS(vector<process> pVector)
 				
 				// increment total processes finished
 				totalFinishedProcesses++;
-				continue;
+				
+				busy = false;
 			}
 			
 			// if process is running
@@ -259,7 +259,6 @@ void FCFS(vector<process> pVector)
 					
 					// change cpu to not blocked
 					busy = false;
-					continue;
 				}
 			}
 			
@@ -282,22 +281,6 @@ void FCFS(vector<process> pVector)
 					pVector[i].waitingTime++;
 				}
 			}
-		}
-		
-		// if nothing is running, increment cycle and continue
-		bool running = false;
-		for(int i = 0; i < pVector.size(); i++)
-		{
-			if(pVector[i].status == "running")
-			{
-				running = true;
-			}
-		}
-		
-		if(!running)
-		{
-			cycle++;
-			continue;
 		}
 		
 		cycle++;
