@@ -141,8 +141,8 @@ void FCFS(vector<process> pVector)
 	queue<process> readyQ;
 	
 	// while not all processes are finished
-	while(totalFinishedProcesses != pVector.size())
-	{	
+	while(totalFinishedProcesses <= pVector.size())
+	{
 		// check if processes are done
 		for(int i = 0; i < pVector.size(); i++)
 		{
@@ -156,11 +156,13 @@ void FCFS(vector<process> pVector)
 				totalFinishedProcesses++;
 				
 				busy = false;
+				continue;
 			}
 		}
 		
-		if(totalFinishedProcesses == pVector.size())
+		if(totalFinishedProcesses >= pVector.size())
 		{
+			busy = false;
 			break;
 		}
 		
@@ -226,7 +228,7 @@ void FCFS(vector<process> pVector)
 		
 		// iterate through each process
 		for(int i = 0; i < pVector.size(); i++)
-		{	
+		{
 			// if process is running
 			if(pVector[i].status == "running")
 			{
@@ -271,8 +273,6 @@ void FCFS(vector<process> pVector)
 				}
 			}
 		}
-		
-		// cout << endl << busy << "," << readyQ.empty() << endl;
 		// if cpu isnt busy and there is something in the ready queue
 		if(!busy && !readyQ.empty())
 		{
@@ -295,6 +295,8 @@ void FCFS(vector<process> pVector)
 		
 		cycle++;
 	}
+	
+	cout << endl << "The scheduling algorithm used was First Come First Served" << endl;
 }
 
 // round robin, quantum 2
@@ -315,42 +317,31 @@ void HPRN(vector<process> pVector)
 int main(int argc, char ** argv)
 {
 	// open file
-	ifstream inputFile;
+	int NumOfProcesses;
+	vector<process> processesVector;
 	if(string(argv[1]) == "--verbose")
 	{
 		ifstream inputFile(argv[2]);
+		inputFile >> NumOfProcesses;
+		for(int i = 0; i < NumOfProcesses; i++)
+		{
+			int A,B,C,M;
+			inputFile >> A >> B >> C >> M;	
+
+			processesVector.push_back({i,A,B,C,M,0,0,randomOS(B) * M,0,0,randomOS(B),randomOS(B),2,"unstarted"});
+		}
 	}
 	else
 	{
 		ifstream inputFile(argv[1]);
-	}
-	
-	// get number of processes
-	int NumOfProcesses;
-	inputFile >> NumOfProcesses;
-	
-	vector<process> processesVector;
-	for(int i = 0; i < NumOfProcesses; i++)
-	{
-		int A,B,C,M;
-		inputFile >> A >> B >> C >> M;	
-		/*
-		int order;
-		int A;
-		int B;
-		int C;
-		int M;
-		int finishTime;
-		int turnaroundTime;
-		int ioBurst;
-		int ioTotalTime;
-		int waitingTime;
-		int cpuBurst;
-		int cpuBurstTimeLeft;
-		int quantum;
-		string status;
-		*/
-		processesVector.push_back({i,A,B,C,M,0,0,randomOS(B) * M,0,0,randomOS(B),randomOS(B),2,"unstarted"});
+		inputFile >> NumOfProcesses;
+		for(int i = 0; i < NumOfProcesses; i++)
+		{
+			int A,B,C,M;
+			inputFile >> A >> B >> C >> M;	
+
+			processesVector.push_back({i,A,B,C,M,0,0,randomOS(B) * M,0,0,randomOS(B),randomOS(B),2,"unstarted"});
+		}
 	}
 	
 	// output original input
