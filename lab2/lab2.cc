@@ -159,6 +159,11 @@ void FCFS(vector<process> pVector)
 			}
 		}
 		
+		if(totalFinishedProcesses == pVector.size())
+		{
+			break;
+		}
+		
 		// if verbose mode is active, print out verbose information
 		if(verbose == true)
 		{
@@ -310,7 +315,15 @@ void HPRN(vector<process> pVector)
 int main(int argc, char ** argv)
 {
 	// open file
-	ifstream inputFile(argv[1]);
+	ifstream inputFile;
+	if(string(argv[1]) == "--verbose")
+	{
+		ifstream inputFile(argv[2]);
+	}
+	else
+	{
+		ifstream inputFile(argv[1]);
+	}
 	
 	// get number of processes
 	int NumOfProcesses;
@@ -360,7 +373,7 @@ int main(int argc, char ** argv)
 	cout << endl;
 	
 	// verbose option
-	if(argc == 3 && (string(argv[2]) == "-verbose" || (string(argv[2]) == "--verbose")))
+	if(argc == 3 && (string(argv[1]) == "--verbose"))
 	{
 		verbose = true;
 		FCFS(processesVector);
