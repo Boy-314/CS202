@@ -142,26 +142,21 @@ void FCFS(vector<process> pVector)
 	
 	// while not all processes are finished
 	while(totalFinishedProcesses != pVector.size())
-	{
-		// cout << endl << busy << "," << readyQ.empty() << endl;
-		// if cpu isnt busy and there is something in the ready queue
-		if(!busy && !readyQ.empty())
+	{	
+		// check if processes are done
+		for(int i = 0; i < pVector.size(); i++)
 		{
-			// find corresponding index in pVector
-			int index = 0;
-			while(pVector[index].order != readyQ.front().order)
+			// if process finishes all cpu time
+			if(pVector[i].C <= 0)
 			{
-				index++;
+				// set status to terminated
+				pVector[i].status = "terminated";
+				
+				// increment total processes finished
+				totalFinishedProcesses++;
+				
+				busy = false;
 			}
-			
-			// set process at front of ready queue status to running
-			pVector[index].status = "running";
-			
-			// pop it off the ready queue
-			readyQ.pop();
-			
-			// set cpu to busy
-			busy = true;
 		}
 		
 		// if verbose mode is active, print out verbose information
@@ -169,11 +164,10 @@ void FCFS(vector<process> pVector)
 		{
 			verboseOutput(cycle,pVector);
 		}
-		
+
 		// iterate through blocked vector
 		for(int i = 0; i < blocked.size(); i++)
 		{
-			cout << endl << blocked.size() << endl;
 			// find corresponding index in pVector
 			int index = 0;
 			while(pVector[index].order != blocked[i].order)
@@ -189,6 +183,7 @@ void FCFS(vector<process> pVector)
 			if(pVector[index].ioBurst <= 0)
 			{
 				// add to vector of processes that are ready
+				pVector[index].ioBurst = randomOS(pVector[index].B) * pVector[index].M;
 				ready.push_back(pVector[index]);
 			}
 			
@@ -219,25 +214,14 @@ void FCFS(vector<process> pVector)
 			// push onto ready queue
 			readyQ.push(pVector[index]);
 			
-			// remove from blocked vector
+			// remove from blocked vector and ready vector
+			ready.erase(ready.begin() + index);
 			blocked.erase(blocked.begin() + indexBlocked);
 		}
 		
 		// iterate through each process
 		for(int i = 0; i < pVector.size(); i++)
-		{
-			// if process finishes all cpu time
-			if(pVector[i].C <= 0)
-			{
-				// set status to terminated
-				pVector[i].status = "terminated";
-				
-				// increment total processes finished
-				totalFinishedProcesses++;
-				
-				busy = false;
-			}
-			
+		{	
 			// if process is running
 			if(pVector[i].status == "running")
 			{
@@ -246,7 +230,7 @@ void FCFS(vector<process> pVector)
 				pVector[i].C--;
 				
 				// if cpuBurstTime is up
-				if(pVector[i].cpuBurstTimeLeft <= 0)
+				if(pVector[i].cpuBurstTimeLeft <= 0 && pVector[i].C > 0)
 				{
 					// set status to blocked
 					pVector[i].status = "blocked";
@@ -281,6 +265,27 @@ void FCFS(vector<process> pVector)
 					pVector[i].waitingTime++;
 				}
 			}
+		}
+		
+		// cout << endl << busy << "," << readyQ.empty() << endl;
+		// if cpu isnt busy and there is something in the ready queue
+		if(!busy && !readyQ.empty())
+		{
+			// find corresponding index in pVector
+			int index = 0;
+			while(pVector[index].order != readyQ.front().order)
+			{
+				index++;
+			}
+			
+			// set process at front of ready queue status to running
+			pVector[index].status = "running";
+			
+			// pop it off the ready queue
+			readyQ.pop();
+			
+			// set cpu to busy
+			busy = true;
 		}
 		
 		cycle++;
