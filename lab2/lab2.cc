@@ -330,6 +330,22 @@ void HPRN(vector<process> pVector)
 int main(int argc, char ** argv)
 {
 	// open file
+	/*
+	int order;
+	int A;
+	int B;
+	int C;
+	int M;
+	int finishTime;
+	int turnaroundTime;
+	int ioBurst;
+	int ioTotalTime;
+	int waitingTime;
+	int cpuBurst;
+	int cpuBurstTimeLeft;
+	int quantum;
+	string status;
+	*/
 	int NumOfProcesses;
 	vector<process> processesVector;
 	if(string(argv[1]) == "--verbose")
@@ -341,7 +357,7 @@ int main(int argc, char ** argv)
 			int A,B,C,M;
 			inputFile >> A >> B >> C >> M;	
 
-			processesVector.push_back({i,A,B,C,M,0,0,randomOS(B) * M,0,0,randomOS(B),randomOS(B),2,"unstarted"});
+			processesVector.push_back({i,A,B,C,M,0,0,0,0,0,0,0,2,"unstarted"});
 		}
 	}
 	else
@@ -353,7 +369,7 @@ int main(int argc, char ** argv)
 			int A,B,C,M;
 			inputFile >> A >> B >> C >> M;	
 
-			processesVector.push_back({i,A,B,C,M,0,0,randomOS(B) * M,0,0,randomOS(B),randomOS(B),2,"unstarted"});
+			processesVector.push_back({i,A,B,C,M,0,0,0,0,0,0,0,2,"unstarted"});
 		}
 	}
 	
