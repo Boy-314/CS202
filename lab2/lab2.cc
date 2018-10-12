@@ -8,23 +8,6 @@
 #include <vector>
 using namespace std;
 
-/*
-output:
-	for each process:
-		A, B, C, and M
-		Finishing time
-		Turnaround time (finishing time - A)
-		I/O time (time in blocked state)
-		Waiting time (time in ready state)
-	summary data:
-		finishing time (when all processes have finished)
-		CPU utilization (percentage of time some job is running)
-		I/O utilization (percentage of time some job is blocked)
-		Throughput, expressed in processes completed per hundred time units
-		average turnaround time
-		average waiting time
-*/
-
 bool verbose;
 bool busy = false;
 
@@ -134,6 +117,10 @@ void verboseOutput(int cycle, vector<process> p)
 void FCFS(vector<process> pVector)
 {
 	int totalFinishedProcesses = 0;
+	bool countedRunning = false;
+	int totalTimeRunning = 0;
+	bool countedIO = false;
+	int totalTimeIO = 0;
 	int cycle = 0;
 	bool busy = false;
 	vector<process> blocked;
@@ -143,7 +130,6 @@ void FCFS(vector<process> pVector)
 	// while not all processes are finished
 	while(totalFinishedProcesses <= pVector.size())
 	{
-		if(cycle>2400){break;}
 		// check if processes are done
 		for(int i = 0; i < pVector.size(); i++)
 		{
@@ -152,12 +138,33 @@ void FCFS(vector<process> pVector)
 			{
 				// set status to terminated
 				pVector[i].status = "terminated";
+				pVector[i].finishTime = cycle - 1;
+				pVector[i].turnaroundTime = pVector[i].finishTime - pVector[i].A;
+				
 				// increment total processes finished
 				totalFinishedProcesses++;
 				
 				busy = false;
 			}
+			
+			if(pVector[i].status == "ready")
+			{
+				pVector[i].waitingTime++;
+			}
+			
+			if(pVector[i].status == "running" && countedRunning == false)
+			{
+				countedRunning = true;
+				totalTimeRunning++;
+			}
+			
+			if(pVector[i].status == "blocked" && countedIO == false)
+			{
+				countedIO = true;
+				totalTimeIO++;
+			}
 		}
+		
 		if(totalFinishedProcesses >= pVector.size())
 		{
 			busy = false;
@@ -169,7 +176,7 @@ void FCFS(vector<process> pVector)
 		{
 			verboseOutput(cycle,pVector);
 		}
-
+		
 		// iterate through blocked vector
 		for(int i = 0; i < blocked.size(); i++)
 		{
@@ -196,19 +203,21 @@ void FCFS(vector<process> pVector)
 			stable_sort(ready.begin(),ready.end(),&process_sorter);
 		}
 		
+		vector<int> toBeRemoved;
 		// iterate through ready vector
 		for(int i = 0; i < ready.size(); i++)
 		{
+			// cout << endl << "i: " << i << endl << "ready.size(): " << ready.size() << endl;
 			// find corresponding index in pVector
 			int index = 0;
 			while(pVector[index].order != ready[i].order)
 			{
 				index++;
 			}
-			
+			toBeRemoved.push_back(index);
 			// find corresponding index in blocked vector
 			int indexBlocked = 0;
-			while(blocked[indexBlocked].order != ready[indexBlocked].order)
+			while(blocked[indexBlocked].order != ready[i].order)
 			{
 				indexBlocked++;
 			}
@@ -219,10 +228,15 @@ void FCFS(vector<process> pVector)
 			// push onto ready queue
 			readyQ.push(pVector[index]);
 			
-			// remove from blocked vector and ready vector
-			ready.erase(ready.begin() + index);
+			// remove from blocked vector
 			blocked.erase(blocked.begin() + indexBlocked);
 		}
+		// remove from ready vector
+		for(int i = 0; i < toBeRemoved.size(); i++)
+		{
+			ready.erase(ready.begin() + i);
+		}
+		toBeRemoved.clear();
 		
 		// iterate through each process
 		for(int i = 0; i < pVector.size(); i++)
@@ -250,7 +264,7 @@ void FCFS(vector<process> pVector)
 					
 					// add to blocked vector
 					blocked.push_back(pVector[i]);
-					
+										
 					// change cpu to not blocked
 					busy = false;
 				}
@@ -268,12 +282,6 @@ void FCFS(vector<process> pVector)
 					// push to ready queue
 					readyQ.push(pVector[i]);
 				}
-				
-				// increment waitingTime
-				else
-				{
-					pVector[i].waitingTime++;
-				}
 			}
 			
 			if(pVector[i].C <= 0)
@@ -281,6 +289,7 @@ void FCFS(vector<process> pVector)
 				busy = false;
 			}
 		}
+		
 		// if cpu isnt busy and there is something in the ready queue
 		if(!busy && !readyQ.empty())
 		{
@@ -305,11 +314,59 @@ void FCFS(vector<process> pVector)
 			// set cpu to busy
 			busy = true;
 		}
-		
+		countedRunning = false;
+		countedIO = false;
 		cycle++;
 	}
 	
 	cout << endl << "The scheduling algorithm used was First Come First Served" << endl;
+	
+	for(int i = 0; i < pVector.size(); i++)
+	{
+		cout << endl;
+		cout << "Process " << i << ":\n\t";
+		cout << "(A,B,C,M) = (" << pVector[i].A << "," << pVector[i].B << "," << pVector[i].cpuBurst << "," << pVector[i].M << ")\n\t";
+		cout << "Finishing time: " << pVector[i].finishTime << "\n\t";
+		cout << "Turnaround time: " << pVector[i].turnaroundTime << "\n\t";
+		cout << "I/O time: " << pVector[i].ioTotalTime << "\n\t";
+		cout << "Waiting time: " << pVector[i].waitingTime;
+		cout << endl;
+	}
+	
+	/*
+	output:
+		for each process:
+			A, B, C, and M
+			Finishing time
+			Turnaround time (finishing time - A)
+			I/O time (time in blocked state)
+			Waiting time (time in ready state)
+		summary data:
+			finishing time (when all processes have finished)
+			CPU utilization (percentage of time some job is running)
+			I/O utilization (percentage of time some job is blocked)
+			Throughput, expressed in processes completed per hundred time units
+			average turnaround time
+			average waiting time
+	*/
+	
+	// calculate summary data
+	double sumTATime = 0;
+	double sumWTime = 0;
+	for(int i = 0; i < pVector.size(); i++)
+	{
+		sumTATime += pVector[i].turnaroundTime;
+		sumWTime += pVector[i].waitingTime;
+	}
+	
+	cout << endl;
+	cout << "Summary Data:\n\t";
+	cout << "Finishing time: " << cycle - 1 << "\n\t";
+	cout << "CPU Utilization: " << totalTimeRunning/(cycle - 1.0) << "\n\t";
+	cout << "I/O Utilization: " << totalTimeIO/(cycle - 1.0) << "\n\t";
+	cout << "Throughput: " << pVector.size()/((cycle - 1)/100.0) << " processes per hundred cycles" << "\n\t";
+	cout << "Average turnaround time: " << sumTATime/pVector.size() << "\n\t";
+	cout << "Average waiting time: " << sumWTime/pVector.size() << endl;
 }
 
 // round robin, quantum 2
@@ -357,7 +414,7 @@ int main(int argc, char ** argv)
 			int A,B,C,M;
 			inputFile >> A >> B >> C >> M;	
 
-			processesVector.push_back({i,A,B,C,M,0,0,0,0,0,0,0,2,"unstarted"});
+			processesVector.push_back({i,A,B,C,M,0,0,randomOS(B) * M,0,0,C,0,2,"unstarted"});
 		}
 	}
 	else
@@ -369,7 +426,7 @@ int main(int argc, char ** argv)
 			int A,B,C,M;
 			inputFile >> A >> B >> C >> M;	
 
-			processesVector.push_back({i,A,B,C,M,0,0,0,0,0,0,0,2,"unstarted"});
+			processesVector.push_back({i,A,B,C,M,0,0,randomOS(B) * M,0,0,C,0,2,"unstarted"});
 		}
 	}
 	
