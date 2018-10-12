@@ -143,23 +143,21 @@ void FCFS(vector<process> pVector)
 	// while not all processes are finished
 	while(totalFinishedProcesses <= pVector.size())
 	{
+		if(cycle>2400){break;}
 		// check if processes are done
 		for(int i = 0; i < pVector.size(); i++)
 		{
 			// if process finishes all cpu time
-			if(pVector[i].C <= 0)
+			if(pVector[i].C == 0 && pVector[i].status != "terminated")
 			{
 				// set status to terminated
 				pVector[i].status = "terminated";
-				
 				// increment total processes finished
 				totalFinishedProcesses++;
 				
 				busy = false;
-				continue;
 			}
 		}
-		
 		if(totalFinishedProcesses >= pVector.size())
 		{
 			busy = false;
@@ -243,7 +241,12 @@ void FCFS(vector<process> pVector)
 					pVector[i].status = "blocked";
 					
 					// reset cpuBurstTimeLeft
-					pVector[i].cpuBurstTimeLeft = pVector[i].cpuBurst;
+					int burst = randomOS(pVector[i].B);
+					if(burst > pVector[i].C)
+					{
+						burst = pVector[i].C;
+					}
+					pVector[i].cpuBurstTimeLeft = burst;
 					
 					// add to blocked vector
 					blocked.push_back(pVector[i]);
@@ -272,6 +275,11 @@ void FCFS(vector<process> pVector)
 					pVector[i].waitingTime++;
 				}
 			}
+			
+			if(pVector[i].C <= 0)
+			{
+				busy = false;
+			}
 		}
 		// if cpu isnt busy and there is something in the ready queue
 		if(!busy && !readyQ.empty())
@@ -285,7 +293,12 @@ void FCFS(vector<process> pVector)
 			
 			// set process at front of ready queue status to running
 			pVector[index].status = "running";
-			
+			int burst = randomOS(pVector[index].B);
+			if(burst > pVector[index].C)
+			{
+				burst = pVector[index].C;
+			}
+			pVector[index].cpuBurstTimeLeft = burst;
 			// pop it off the ready queue
 			readyQ.pop();
 			
