@@ -35,6 +35,7 @@ struct process
 	int ioBurst;
 	int ioTotalTime;
 	int waitingTime;
+	int previousCPUBurst;
 	int cpuBurst;
 	int cpuBurstTimeLeft;
 	int quantum;
@@ -55,11 +56,10 @@ bool process_sorter(process const& left, process const& right)
 reads a random non-negative integer X from a file named random-numbers and
 returns the value 1 + (X mod U)
 */
+// vector containing all the random numbers in the text file
+vector<int> randomNumbers;
 int randomOS(int U)
 {
-	// vector containing all the random numbers in the text file
-	vector<int> randomNumbers;
-	
 	// push back items from the text file into the vector
 	ifstream inputFile("random-numbers.txt");
 	if(inputFile)
@@ -71,13 +71,11 @@ int randomOS(int U)
 		}
 	}
 	inputFile.close();
-	
-	// get a random index between 0 and size of randomNumbers - 1
-	int max = randomNumbers.size();
-	int randomIndex = rand() % max;
 
 	// calculate return value
-	int finalRandomNumber = 1 + (randomNumbers[randomIndex] % U);
+	int finalRandomNumber = 1 + (randomNumbers[0] % U);
+	
+	randomNumbers.erase(randomNumbers.begin());
 	
 	return finalRandomNumber;
 }
@@ -195,7 +193,7 @@ void FCFS(vector<process> pVector)
 			if(pVector[index].ioBurst <= 0)
 			{
 				// add to vector of processes that are ready
-				pVector[index].ioBurst = randomOS(pVector[index].B) * pVector[index].M;
+				pVector[index].ioBurst = pVector[index].previousCPUBurst * pVector[index].M;
 				ready.push_back(pVector[index]);
 			}
 			
@@ -239,32 +237,32 @@ void FCFS(vector<process> pVector)
 		toBeRemoved.clear();
 		
 		// iterate through each process
+		bool busyTest = false;
 		for(int i = 0; i < pVector.size(); i++)
 		{
 			// if process is running
 			if(pVector[i].status == "running")
 			{
+				busyTest = true;
 				// decrement cpu burst time left and C
 				pVector[i].cpuBurstTimeLeft--;
 				pVector[i].C--;
+				if(pVector[i].C <= 0)
+				{
+					busyTest = false;
+				}
 				
 				// if cpuBurstTime is up
-				if(pVector[i].cpuBurstTimeLeft <= 0 && pVector[i].C > 0)
+				if(pVector[i].cpuBurstTimeLeft <= 0)
 				{
-					// set status to blocked
-					pVector[i].status = "blocked";
-					
-					// reset cpuBurstTimeLeft
-					int burst = randomOS(pVector[i].B);
-					if(burst > pVector[i].C)
+					if(pVector[i].C > 0)
 					{
-						burst = pVector[i].C;
+						// set status to blocked
+						pVector[i].status = "blocked";
+						pVector[i].ioBurst = pVector[i].previousCPUBurst * pVector[i].M;
+						// add to blocked vector
+						blocked.push_back(pVector[i]);
 					}
-					pVector[i].cpuBurstTimeLeft = burst;
-					
-					// add to blocked vector
-					blocked.push_back(pVector[i]);
-										
 					// change cpu to not blocked
 					busy = false;
 				}
@@ -283,11 +281,11 @@ void FCFS(vector<process> pVector)
 					readyQ.push(pVector[i]);
 				}
 			}
-			
-			if(pVector[i].C <= 0)
-			{
-				busy = false;
-			}
+		}
+		
+		if(busyTest == false)
+		{
+			busy = false;
 		}
 		
 		// if cpu isnt busy and there is something in the ready queue
@@ -302,12 +300,9 @@ void FCFS(vector<process> pVector)
 			
 			// set process at front of ready queue status to running
 			pVector[index].status = "running";
-			int burst = randomOS(pVector[index].B);
-			if(burst > pVector[index].C)
-			{
-				burst = pVector[index].C;
-			}
+			int burst = randomOS(pVector[index].B);	
 			pVector[index].cpuBurstTimeLeft = burst;
+			pVector[index].previousCPUBurst = burst;
 			// pop it off the ready queue
 			readyQ.pop();
 			
@@ -398,6 +393,7 @@ int main(int argc, char ** argv)
 	int ioBurst;
 	int ioTotalTime;
 	int waitingTime;
+	int previousCPUBurst;
 	int cpuBurst;
 	int cpuBurstTimeLeft;
 	int quantum;
@@ -414,7 +410,7 @@ int main(int argc, char ** argv)
 			int A,B,C,M;
 			inputFile >> A >> B >> C >> M;	
 
-			processesVector.push_back({i,A,B,C,M,0,0,randomOS(B) * M,0,0,C,0,2,"unstarted"});
+			processesVector.push_back({i,A,B,C,M,0,0,0,0,0,0,C,0,2,"unstarted"});
 		}
 	}
 	else
@@ -426,7 +422,7 @@ int main(int argc, char ** argv)
 			int A,B,C,M;
 			inputFile >> A >> B >> C >> M;	
 
-			processesVector.push_back({i,A,B,C,M,0,0,randomOS(B) * M,0,0,C,0,2,"unstarted"});
+			processesVector.push_back({i,A,B,C,M,0,0,0,0,0,0,C,0,2,"unstarted"});
 		}
 	}
 	
