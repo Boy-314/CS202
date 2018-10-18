@@ -73,6 +73,7 @@ int randomOS(int U)
 	inputFile.close();
 
 	// calculate return value
+	// cout << "\nFind burst when choosing ready process to run " << randomNumbers[0];
 	int finalRandomNumber = 1 + (randomNumbers[0] % U);
 	
 	randomNumbers.erase(randomNumbers.begin());
@@ -397,6 +398,8 @@ void roundRobin(vector<process> pVector)
 	bool busy = false;
 	vector<process> blocked;
 	vector<process> ready;
+	vector<int> toBeRemoved;
+	vector<process> tiebreaking;
 	queue<process> readyQ;
 	
 	// while not all processes are finished
@@ -469,13 +472,12 @@ void roundRobin(vector<process> pVector)
 				// add to vector of processes that are ready
 				pVector[index].ioBurst = pVector[index].previousCPUBurst * pVector[index].M;
 				ready.push_back(pVector[index]);
+				
+				// sort vector of processes that are ready
+				stable_sort(ready.begin(),ready.end(),&process_sorter);
 			}
-			
-			// sort vector of processes that are ready
-			stable_sort(ready.begin(),ready.end(),&process_sorter);
 		}
 		
-		vector<int> toBeRemoved;
 		// iterate through ready vector
 		for(int i = 0; i < ready.size(); i++)
 		{
@@ -498,7 +500,8 @@ void roundRobin(vector<process> pVector)
 			pVector[index].status = "ready";
 			
 			// push onto ready queue
-			readyQ.push(pVector[index]);
+			// readyQ.push(pVector[index]);
+			tiebreaking.push_back(pVector[index]);
 			
 			// remove from blocked vector
 			blocked.erase(blocked.begin() + indexBlocked);
@@ -509,7 +512,7 @@ void roundRobin(vector<process> pVector)
 			ready.erase(ready.begin() + i);
 		}
 		toBeRemoved.clear();
-		
+
 		// iterate through each process
 		bool busyTest = false;
 		for(int i = 0; i < pVector.size(); i++)
@@ -530,9 +533,14 @@ void roundRobin(vector<process> pVector)
 				
 				if(pVector[i].quantum <= 0)
 				{
-					readyQ.push(pVector[i]);
+					if(pVector[i].cpuBurstTimeLeft > 0)
+					{
+						// readyQ.push(pVector[i]);
+						tiebreaking.push_back(pVector[i]);
+					}
 					pVector[i].status = "ready";
 					pVector[i].quantum = 2;
+					busy = false;
 				}
 				
 				// if cpuBurstTime is up
@@ -562,7 +570,8 @@ void roundRobin(vector<process> pVector)
 					pVector[i].status = "ready";
 					
 					// push to ready queue
-					readyQ.push(pVector[i]);
+					// readyQ.push(pVector[i]);
+					tiebreaking.push_back(pVector[i]);
 				}
 			}
 		}
@@ -571,6 +580,18 @@ void roundRobin(vector<process> pVector)
 		{
 			busy = false;
 		}
+		
+		stable_sort(tiebreaking.begin(),tiebreaking.end(),&process_sorter);
+		for(int i = 0; i < tiebreaking.size(); i++)
+		{
+			int index = 0;
+			while(pVector[index].order != tiebreaking[i].order)
+			{
+				index++;
+			}
+			readyQ.push(pVector[index]);
+		}
+		tiebreaking.clear();
 		
 		// if cpu isnt busy and there is something in the ready queue
 		if(!busy && !readyQ.empty())
@@ -584,9 +605,12 @@ void roundRobin(vector<process> pVector)
 			
 			// set process at front of ready queue status to running
 			pVector[index].status = "running";
-			int burst = randomOS(pVector[index].B);	
-			pVector[index].cpuBurstTimeLeft = burst;
-			pVector[index].previousCPUBurst = burst;
+			if(pVector[index].cpuBurstTimeLeft <= 0)
+			{
+				int burst = randomOS(pVector[index].B);	
+				pVector[index].cpuBurstTimeLeft = burst;
+				pVector[index].previousCPUBurst = burst;	
+			}
 			// pop it off the ready queue
 			readyQ.pop();
 			
@@ -743,7 +767,7 @@ int main(int argc, char ** argv)
 	if(argc == 3 && (string(argv[1]) == "--verbose"))
 	{
 		verbose = true;
-		FCFS(processesVector);
+		// FCFS(processesVector);
 		processesVector = reset(argv[2]);
 		resetRandom();
 		roundRobin(processesVector);
