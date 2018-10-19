@@ -415,7 +415,7 @@ void roundRobin(vector<process> pVector)
 				pVector[i].status = "terminated";
 				pVector[i].finishTime = cycle - 1;
 				pVector[i].turnaroundTime = pVector[i].finishTime - pVector[i].A;
-				
+
 				// increment total processes finished
 				totalFinishedProcesses++;
 				
@@ -439,7 +439,7 @@ void roundRobin(vector<process> pVector)
 				totalTimeIO++;
 			}
 		}
-		
+
 		if(totalFinishedProcesses >= pVector.size())
 		{
 			busy = false;
@@ -531,7 +531,7 @@ void roundRobin(vector<process> pVector)
 					busyTest = false;
 				}
 				
-				if(pVector[i].quantum <= 0)
+				if(pVector[i].quantum <= 0 && pVector[i].C > 0)
 				{
 					if(pVector[i].cpuBurstTimeLeft > 0)
 					{
@@ -596,7 +596,7 @@ void roundRobin(vector<process> pVector)
 			readyQ.push(pVector[index]);
 		}
 		tiebreaking.clear();
-		if(cycle==898){if(busy){cout << "busy\n";}if(!busy){cout << "not busy\n";}}
+		
 		// if cpu isnt busy and there is something in the ready queue
 		if(!busy && !readyQ.empty())
 		{
@@ -682,6 +682,7 @@ vector<process> reset(string filename)
 
 		processesVector.push_back({i,A,B,C,M,0,0,0,0,0,0,C,0,2,"unstarted"});
 	}
+	stable_sort(processesVector.begin(),processesVector.end(),&process_sorter);
 	return processesVector;
 }
 
@@ -748,9 +749,6 @@ int main(int argc, char ** argv)
 		}
 	}
 	
-	// sort processesVector
-	stable_sort(processesVector.begin(),processesVector.end(),&process_sorter);	
-	
 	// output original input
 	cout << "The original input was:\t" << NumOfProcesses;
 	for(int i = 0; i < processesVector.size(); i++)
@@ -758,6 +756,9 @@ int main(int argc, char ** argv)
 		cout << " (" << processesVector[i].A << " " << processesVector[i].B << " " << processesVector[i].C << " " << processesVector[i].M << ")";
 	}
 	cout << endl;
+	
+	// sort processesVector
+	stable_sort(processesVector.begin(),processesVector.end(),&process_sorter);
 	
 	// output sorted input
 	cout << "The (sorted) input is:\t" << NumOfProcesses;
