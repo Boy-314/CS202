@@ -540,7 +540,7 @@ void roundRobin(vector<process> pVector)
 					}
 					pVector[i].status = "ready";
 					pVector[i].quantum = 2;
-					busy = false;
+					busyTest = false;
 				}
 				
 				// if cpuBurstTime is up
@@ -556,7 +556,7 @@ void roundRobin(vector<process> pVector)
 						blocked.push_back(pVector[i]);
 					}
 					// change cpu to not blocked
-					busy = false;
+					busyTest = false;
 				}
 			}
 			
@@ -580,6 +580,10 @@ void roundRobin(vector<process> pVector)
 		{
 			busy = false;
 		}
+		if(busyTest == true)
+		{
+			busy = true;
+		}
 		
 		stable_sort(tiebreaking.begin(),tiebreaking.end(),&process_sorter);
 		for(int i = 0; i < tiebreaking.size(); i++)
@@ -592,7 +596,7 @@ void roundRobin(vector<process> pVector)
 			readyQ.push(pVector[index]);
 		}
 		tiebreaking.clear();
-		
+		if(cycle==898){if(busy){cout << "busy\n";}if(!busy){cout << "not busy\n";}}
 		// if cpu isnt busy and there is something in the ready queue
 		if(!busy && !readyQ.empty())
 		{
