@@ -40,6 +40,8 @@ struct process
 	int cpuBurst;
 	int cpuBurstTimeLeft;
 	int quantum;
+	double r;
+	int runningTime;
 	string status;
 };
 
@@ -61,6 +63,16 @@ bool lcfs_process_sorter(process const& left, process const& right)
 		return left.order > right.order;
 	}
 	return left.A > right.A;
+}
+
+// function for comparing two processes for HPRN
+bool hprn_process_sorter(process const& left, process const& right)
+{
+	if(left.r == right.r)
+	{
+		return left.order < right.order;
+	}
+	return left.r > right.r;
 }
 
 /*
@@ -921,12 +933,276 @@ void LCFS(vector<process> pVector)
 	cout << "Throughput: " << pVector.size()/((cycle - 1)/100.0) << " processes per hundred cycles" << "\n\t";
 	cout << "Average turnaround time: " << sumTATime/pVector.size() << "\n\t";
 	cout << "Average waiting time: " << sumWTime/pVector.size() << endl;
-
 }
 
-// HPRN
+// highest penalty ratio next
 void HPRN(vector<process> pVector)
 {
+	int totalFinishedProcesses = 0;
+	bool countedRunning = false;
+	int totalTimeRunning = 0;
+	bool countedIO = false;
+	int totalTimeIO = 0;
+	int cycle = 0;
+	bool busy = false;
+	vector<process> blocked;
+	vector<process> ready;
+	vector<process> tiebreaking;
+	vector<process> readyVector;
+	
+	// while not all processes are finished
+	while(totalFinishedProcesses <= pVector.size())
+	{
+		// check if processes are done
+		for(int i = 0; i < pVector.size(); i++)
+		{
+			double t = max(1,pVector[i].runningTime);
+			pVector[i].r = (cycle - pVector[i].A)/t;
+			
+			// if(cycle==11){cout << pVector[i].r << ",";}
+			
+			// if process finishes all cpu time
+			if(pVector[i].C == 0 && pVector[i].status != "terminated")
+			{
+				// set status to terminated
+				pVector[i].status = "terminated";
+				pVector[i].finishTime = cycle - 1;
+				pVector[i].turnaroundTime = pVector[i].finishTime - pVector[i].A;
+				
+				// increment total processes finished
+				totalFinishedProcesses++;
+				
+				busy = false;
+			}
+			
+			if(pVector[i].status == "ready")
+			{
+				pVector[i].waitingTime++;
+			}
+			
+			if(pVector[i].status == "running" && countedRunning == false)
+			{
+				countedRunning = true;
+				totalTimeRunning++;
+				pVector[i].runningTime++;
+			}
+			
+			if(pVector[i].status == "blocked" && countedIO == false)
+			{
+				countedIO = true;
+				totalTimeIO++;
+			}
+		}
+		
+		if(totalFinishedProcesses >= pVector.size())
+		{
+			busy = false;
+			break;
+		}
+		
+		// if verbose mode is active, print out verbose information
+		if(verbose == true)
+		{
+			verboseOutput(cycle,pVector);
+		}
+		
+		// iterate through blocked vector
+		for(int i = 0; i < blocked.size(); i++)
+		{
+			// find corresponding index in pVector
+			int index = 0;
+			while(pVector[index].order != blocked[i].order)
+			{
+				index++;
+			}
+			
+			// decrement ioBurst and increment ioTotalTime
+			pVector[index].ioBurst--;
+			pVector[index].ioTotalTime++;
+			
+			// if process is done with io
+			if(pVector[index].ioBurst <= 0)
+			{
+				// add to vector of processes that are ready
+				pVector[index].ioBurst = pVector[index].previousCPUBurst * pVector[index].M;
+				ready.push_back(pVector[index]);
+			}
+		}
+		// sort vector of processes that are ready
+		stable_sort(ready.begin(),ready.end(),&hprn_process_sorter);
+		vector<int> toBeRemoved;
+		// iterate through ready vector
+		for(int i = 0; i < ready.size(); i++)
+		{
+			// cout << endl << "i: " << i << endl << "ready.size(): " << ready.size() << endl;
+			// find corresponding index in pVector
+			int index = 0;
+			while(pVector[index].order != ready[i].order)
+			{
+				index++;
+			}
+			toBeRemoved.push_back(index);
+			// find corresponding index in blocked vector
+			int indexBlocked = 0;
+			while(blocked[indexBlocked].order != ready[i].order)
+			{
+				indexBlocked++;
+			}
+			
+			// set status to ready
+			pVector[index].status = "ready";
+			
+			// push onto ready queue
+			tiebreaking.push_back(pVector[index]);
+			
+			// remove from blocked vector
+			blocked.erase(blocked.begin() + indexBlocked);
+		}
+		// remove from ready vector
+		for(int i = 0; i < toBeRemoved.size(); i++)
+		{
+			ready.erase(ready.begin() + i);
+		}
+		toBeRemoved.clear();
+		
+		// iterate through each process
+		bool busyTest = false;
+		for(int i = 0; i < pVector.size(); i++)
+		{
+			// if process is running
+			if(pVector[i].status == "running")
+			{
+				busyTest = true;
+				// decrement cpu burst time left and C
+				pVector[i].cpuBurstTimeLeft--;
+				pVector[i].C--;
+				if(pVector[i].C <= 0)
+				{
+					busyTest = false;
+				}
+				
+				// if cpuBurstTime is up
+				if(pVector[i].cpuBurstTimeLeft <= 0)
+				{
+					if(pVector[i].C > 0)
+					{
+						// set status to blocked
+						pVector[i].status = "blocked";
+						pVector[i].ioBurst = pVector[i].previousCPUBurst * pVector[i].M;
+						// add to blocked vector
+						blocked.push_back(pVector[i]);
+					}
+					// change cpu to not blocked
+					busyTest = false;
+				}
+			}
+			
+			// if process is unstarted
+			if(pVector[i].status == "unstarted")
+			{
+				// if process has arrived
+				if(pVector[i].A <= cycle)
+				{
+					// set status to ready
+					pVector[i].status = "ready";
+					
+					// push to ready queue
+					tiebreaking.push_back(pVector[i]);
+				}
+			}
+		}
+		
+		if(busyTest == false)
+		{
+			busy = false;
+		}
+		if(busyTest == true)
+		{
+			busy = true;
+		}
+		
+		stable_sort(tiebreaking.begin(),tiebreaking.end(),&hprn_process_sorter);
+		for(int i = 0; i < tiebreaking.size(); i++)
+		{
+			int index = 0;
+			while(pVector[index].order != tiebreaking[i].order)
+			{
+				index++;
+			}
+			readyVector.push_back(pVector[index]);
+		}
+		tiebreaking.clear();
+		for(int i = 0; i < readyVector.size(); i++)
+		{
+			double t = max(1,readyVector[i].runningTime);
+			readyVector[i].r = (cycle - readyVector[i].A)/t;
+		}
+		stable_sort(readyVector.begin(),readyVector.end(),&hprn_process_sorter);
+		// if(cycle==10)
+		// {
+			// for(int i = 0; i < readyVector.size(); i++)
+			// {
+				// cout << readyVector[i].order << ":" << readyVector[i].r << ",";
+			// }
+		// }
+		// if cpu isnt busy and there is something in the ready queue
+		if(!busy && !readyVector.empty())
+		{
+			// find corresponding index in pVector
+			int index = 0;
+			while(pVector[index].order != readyVector[0].order)
+			{
+				index++;
+			}
+			
+			// set process at front of ready queue status to running
+			pVector[index].status = "running";
+			int burst = randomOS(pVector[index].B);	
+			pVector[index].cpuBurstTimeLeft = burst;
+			pVector[index].previousCPUBurst = burst;
+			// pop it off the ready queue
+			readyVector.erase(readyVector.begin());
+			// readyQ.pop();
+			
+			// set cpu to busy
+			busy = true;
+		}
+		countedRunning = false;
+		countedIO = false;
+		cycle++;
+	}
+	
+	cout << endl << "The scheduling algorithm used was Highest Penalty Ratio Next" << endl;
+	
+	for(int i = 0; i < pVector.size(); i++)
+	{
+		cout << endl;
+		cout << "Process " << i << ":\n\t";
+		cout << "(A,B,C,M) = (" << pVector[i].A << "," << pVector[i].B << "," << pVector[i].cpuBurst << "," << pVector[i].M << ")\n\t";
+		cout << "Finishing time: " << pVector[i].finishTime << "\n\t";
+		cout << "Turnaround time: " << pVector[i].turnaroundTime << "\n\t";
+		cout << "I/O time: " << pVector[i].ioTotalTime << "\n\t";
+		cout << "Waiting time: " << pVector[i].waitingTime;
+		cout << endl;
+	}
+	
+	// calculate summary data
+	double sumTATime = 0;
+	double sumWTime = 0;
+	for(int i = 0; i < pVector.size(); i++)
+	{
+		sumTATime += pVector[i].turnaroundTime;
+		sumWTime += pVector[i].waitingTime;
+	}
+	
+	cout << endl;
+	cout << "Summary Data:\n\t";
+	cout << "Finishing time: " << cycle - 1 << "\n\t";
+	cout << "CPU Utilization: " << totalTimeRunning/(cycle - 1.0) << "\n\t";
+	cout << "I/O Utilization: " << totalTimeIO/(cycle - 1.0) << "\n\t";
+	cout << "Throughput: " << pVector.size()/((cycle - 1)/100.0) << " processes per hundred cycles" << "\n\t";
+	cout << "Average turnaround time: " << sumTATime/pVector.size() << "\n\t";
+	cout << "Average waiting time: " << sumWTime/pVector.size() << endl;
 }
 
 vector<process> reset(string filename)
@@ -940,7 +1216,7 @@ vector<process> reset(string filename)
 		int A,B,C,M;
 		inputFile >> A >> B >> C >> M;	
 
-		processesVector.push_back({i,A,B,C,M,0,0,0,0,0,0,C,0,2,"unstarted"});
+		processesVector.push_back({i,A,B,C,M,0,0,0,0,0,0,C,0,2,0,0,"unstarted"});
 	}
 	stable_sort(processesVector.begin(),processesVector.end(),&process_sorter);
 	return processesVector;
@@ -993,7 +1269,7 @@ int main(int argc, char ** argv)
 			int A,B,C,M;
 			inputFile >> A >> B >> C >> M;	
 
-			processesVector.push_back({i,A,B,C,M,0,0,0,0,0,0,C,0,2,"unstarted"});
+			processesVector.push_back({i,A,B,C,M,0,0,0,0,0,0,C,0,2,0,0,"unstarted"});
 		}
 	}
 	else
@@ -1005,7 +1281,7 @@ int main(int argc, char ** argv)
 			int A,B,C,M;
 			inputFile >> A >> B >> C >> M;	
 
-			processesVector.push_back({i,A,B,C,M,0,0,0,0,0,0,C,0,2,"unstarted"});
+			processesVector.push_back({i,A,B,C,M,0,0,0,0,0,0,C,0,2,0,0,"unstarted"});
 		}
 	}
 	
@@ -1032,14 +1308,16 @@ int main(int argc, char ** argv)
 	if(argc == 3 && (string(argv[1]) == "--verbose"))
 	{
 		verbose = true;
-		// FCFS(processesVector);
-		// processesVector = reset(argv[2]);
-		// resetRandom();
-		// roundRobin(processesVector);
+		FCFS(processesVector);
+		processesVector = reset(argv[2]);
+		resetRandom();
+		roundRobin(processesVector);
 		processesVector = reset(argv[2]);
 		resetRandom();
 		LCFS(processesVector);
-		// HPRN();
+		processesVector = reset(argv[2]);
+		resetRandom();
+		HPRN(processesVector);
 	}
 	
 	// regular option
@@ -1053,7 +1331,9 @@ int main(int argc, char ** argv)
 		processesVector = reset(argv[1]);
 		resetRandom();
 		LCFS(processesVector);
-		// HPRN();
+		processesVector = reset(argv[1]);
+		resetRandom();
+		HPRN(processesVector);
 	}
 	
 	// invalid command line arguments
