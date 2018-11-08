@@ -682,6 +682,7 @@ void LCFS(vector<process> pVector)
 	bool busy = false;
 	vector<process> blocked;
 	vector<process> ready;
+	vector<process> tiebreaking;
 	stack<process> readyStack;
 	
 	// while not all processes are finished
@@ -783,7 +784,7 @@ void LCFS(vector<process> pVector)
 			pVector[index].status = "ready";
 			
 			// push onto ready queue
-			readyStack.push(pVector[index]);
+			tiebreaking.push_back(pVector[index]);
 			
 			// remove from blocked vector
 			blocked.erase(blocked.begin() + indexBlocked);
@@ -823,7 +824,7 @@ void LCFS(vector<process> pVector)
 						blocked.push_back(pVector[i]);
 					}
 					// change cpu to not blocked
-					busy = false;
+					busyTest = false;
 				}
 			}
 			
@@ -837,7 +838,7 @@ void LCFS(vector<process> pVector)
 					pVector[i].status = "ready";
 					
 					// push to ready queue
-					readyStack.push(pVector[i]);
+					tiebreaking.push_back(pVector[i]);
 				}
 			}
 		}
@@ -846,7 +847,23 @@ void LCFS(vector<process> pVector)
 		{
 			busy = false;
 		}
+		if(busyTest == true)
+		{
+			busy = true;
+		}
 		
+		stable_sort(tiebreaking.begin(),tiebreaking.end(),&lcfs_process_sorter);
+		for(int i = 0; i < tiebreaking.size(); i++)
+		{
+			int index = 0;
+			while(pVector[index].order != tiebreaking[i].order)
+			{
+				index++;
+			}
+			readyStack.push(pVector[index]);
+		}
+		tiebreaking.clear();
+
 		// if cpu isnt busy and there is something in the ready queue
 		if(!busy && !readyStack.empty())
 		{
@@ -1021,7 +1038,6 @@ int main(int argc, char ** argv)
 		// roundRobin(processesVector);
 		processesVector = reset(argv[2]);
 		resetRandom();
-		stable_sort(processesVector.begin(),processesVector.end(),&lcfs_process_sorter);
 		LCFS(processesVector);
 		// HPRN();
 	}
