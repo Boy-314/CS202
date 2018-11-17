@@ -1,0 +1,111 @@
+<html>
+  <head>
+    <title>Homework Solutions for Operating Systems</title>
+    <!-- The following is std, but needs access to cs.nyu.edu -->
+    <link rel="stylesheet" type="text/css"
+	  href="http://cs.nyu.edu/~gottlieb/css/courses.css"/>
+    <!-- Firefox treats the next as relative; I use it when off the net -->
+    <link rel="stylesheet" type="text/css"
+	  href="http:/~gottlieb/css/courses.css"/>
+    <link rel="shortcut icon" href="//cs.nyu.edu/~gottlieb/favicon.ico"/>
+  </head>
+
+<body>
+
+<h1>Chapter 1: Introduction</h1>
+
+<h2>1.1: What is an Operating System?</h2>
+
+<p><strong>Problem:</strong> 1.1
+  What are the two main functions of an operating system?</p>
+<p><strong>Solution:</strong>
+  An operating system provides the users with an extended (i.e.,
+  virtual) machine, and it must manage the I/O devices and other system
+  resources.</p>
+
+<h2>1.2: History</h2>
+
+<p><strong>Problem:</strong>
+  What is multiprogramming?</p>
+<p><strong>Solution:</strong>
+  Multiprogramming is the rapid switching of the CPU between multiple processes
+  in memory. It is commonly used to keep the CPU busy while one or more
+  processes are doing I/O. It also allows two or more people to use the same
+  computer simultaneously. Furthermore, it permits a single user to start up
+  multiple, independent processed at the same time.</p>
+<hr/>
+
+<p><strong>Problem:</strong>
+  Why was timesharing not widespread on second generation computers?</p>
+<p><strong>Solution:</strong>
+  Second generation computers did not have the necessary hardware to protect
+  the operating system from malicious user programs.</p>
+<hr/>
+
+<p><strong>Problem:</strong>
+  What is spooling?
+  Do you think that advanced personal computers will have spooling as
+  a standard feature in the future?</p>
+<p><strong>Solution:</strong> Input spooling is the technique of
+  reading jobs, onto the disk, so that when the currently executing
+  processed are finished, there will be work waiting for the CPU.
+  Output spooling consists of first copying printable files to disk
+  before printing them, rather thatn printing directly as the output
+  is generated.
+  Input spooling on a personal computer is not very likely since the
+  jobs are normally created on the disk, but output spooling is.</p>
+<hr/>
+
+<p><strong>Problem:</strong> 1.5.
+  On early computers, every byte of data read or written was handled
+  by the CPU (i.e., there was no DMA).
+  What implications does this have for multiprogramming?</p>
+<p><strong>Solution:</strong>
+  It makes multiprogramming less favorable since it is no longer the
+  case that when one process does I/O the CPU is completely free to
+  work on other processes.</p>
+
+<h2>1.5 Operating Systems Concepts</h2>
+
+<p><strong>Problem:</strong> 1.12.
+  Which of the following instructions should be allowed only in kernel
+  mode?</p>
+<ol type=a>
+  <li>Disable all interrupts.</li>
+  <li>Read the time-of-day clock.</li>
+  <li>Set the time-of-day clock.</li>
+  <li>Change the memory map.</li>
+</ol>
+<p><strong>Solution:</strong>
+  Choices (a),(c) and (d) should be restricted to kernel mode.</p>
+
+<h2>1.6: System Calls</h2>
+
+<p><strong>Problem:</strong>
+  For each of the following system calls,
+  give a condition that causes it to fail: <strong>fork</strong>,
+  <strong>exec</strong>, and <strong>unlink</strong>.</p>
+<p><strong>Solution:</strong>
+  <strong>Fork</strong> can fail if there are no free slots left in
+  the process table (and possibly if there is no memory or swap space
+  left).<br/>
+  <strong>Exec</strong> can fail if the file name given does not exist
+  or is not a valid executable file.<br />
+  <strong>Unlink</strong> can fail if the file to be unlinked does not
+  exist or the calling process does not have the authority to unlink
+  it.</p>
+
+<h2>1.7: OS Structure</h2>
+
+<p><strong>Problem:</strong> 1.24.
+  The client-server model is popular in distributed systems.
+  Can it also be used in single-computer system?</p>
+<p><strong>Solution:</strong>
+  Yes it can, especially if the kernel is a message passing system.
+  Also the client-server paradigm is often used to split large programs
+  into a more modular, flexible, extendable, etc. system.  Even
+  traditional monolithic OSs have various applications using
+  client-server: X Windows for Unix/Linux is a good example.</p>
+
+</body>
+</html>

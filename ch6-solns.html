@@ -1,0 +1,177 @@
+<html>
+  <head>
+    <title>Homework Solutions for Operating Systems</title>
+    <!-- The following is std, but needs access to cs.nyu.edu -->
+    <link rel="stylesheet" type="text/css"
+	  href="http://cs.nyu.edu/~gottlieb/css/courses.css"/>
+    <!-- Firefox treats the next as relative; I use it when off the net -->
+    <link rel="stylesheet" type="text/css"
+	  href="http:/~gottlieb/css/courses.css"/>
+    <link rel="shortcut icon" href="//cs.nyu.edu/~gottlieb/favicon.ico"/>
+  </head>
+
+<body>
+
+
+
+<h1>Chapter 6: Deadlocks</h1>
+
+<h2>6.2: Deadlocks</h2>
+
+<p><strong>Problem 6.9:</strong>
+<p><strong>Solution:</strong> Yes illegal graphs exist.
+  We stated that a resource may only be held by a single process.
+  An arc from a resource square to a process circle indicates that the
+  process owns the resource.
+  Thus a square with arcs going from it to two or more processes means
+  that all those process hold the resource, which violates the rules.
+  Consequently, any graph in which multiple arcs leave a square and
+  end in different circles violates the rules [This is for single unit
+  resources.
+  For multiple unit resources you can have multiple arcs leaving a
+  square, which represents a resource type; the dots inside a square
+  represent the resources instances themselves.
+  Arcs from squares to squares or from circles to circles are
+  definitely not possible and a graph awith such an arc violates the
+  rules.</p>
+
+<h2>6.6: Deadlock Prevention</h2>
+
+<p><strong>Problem 10:</strong>
+  Consider Figure 6-4.
+  Suppose that in step (o) C requested S instead of requesting R.
+  Would this lead to deadlock?
+  Suppose that it requested both S and R.
+<p><strong>Solution:</strong>
+  Neither change leads to deadlock. There is no circular wait in either
+  case.</p>
+
+<h2>6.5: Deadlock Avoidance</h2>
+
+<p><strong>Problem 17:</strong>
+  All the trajectories in Figure 6-8 are horizontal or vertical.
+  Is is possible for a trajectory to be a diagonal.
+<p><strong>Solution:</strong>
+  If the system had two or more CPUs, two or more processes could run in
+  parallel, leading to diagonal trajectories.<hr/>
+
+<p><strong>Problem 18:</strong> 
+<p><strong>Solution:</strong>
+  Yes. Do the whole thing in three dimensions. The z-axis measures the
+  number of instructions executed by the third process.<hr/>
+
+<p><strong>Problem 19:</strong>
+<p><strong>Solution:</strong>
+  The method can only be used to guide the scheduling if the exact
+  instant at which a resource is going to be claimed is known in
+  advance. In practice, this is rarely the case.<hr/>
+
+<p><strong>Problem 21:</strong> 
+<p><strong>Solution:</strong>
+  Satisfying a request from D is unsafe, but satisfying one from C is
+  safe.<hr/>
+
+<p><strong>Homework:</strong> Consider a system containing a total of
+  12 units of resource R and 24 units of resource S managed by the
+  banker's algorithm.
+  There are three processes P1, P2, and P3.
+  P1's claim is 0 units of R and 12 units of S, written (0,12).
+  P2's claim is (8,15).
+  P3's claim is (8,20).
+  Currently P1 has 4 units of S, P2 has 8 units of R, P3 has 8 units
+  of S, and there are no outstanding requests.
+  <ol class="compact">
+    <li>What is the largest number of units of S that P1 can request
+      at this point that the banker will grant?
+    <li>If P2 instead of P1 makes the request, what is the largest
+      number of units of S that the banker will grant?
+    <li>If P3 instead of P1 or P2 makes the request, what is the
+      largest number of units of S that the banker will grant?
+  </ol>
+<p><strong>Solution</strong>: There are (8,12) allocated in total and
+  hence (4,12) available.
+  <table class="right">
+    <tr>
+      <th>process<th>initial<br>claim<th>current<br>alloc<th>might<br>need
+    </tr>
+    <tr><td>P1<td>(0,12)<td>(0,4)<td>(0,8)</tr>
+    <tr><td>P2<td>(8,15)<td>(8,0)<td>(0,15)</tr>
+    <tr><td>P3<td>(8,20)<td>(0,8)<td>(8,12)</tr>
+  </table>
+  <ol>
+    <li>It would be legal to give up to 8 units of S to P1.
+      For each value i from 1 to 8 giving i units to P1 results in a
+      safe system because the processes can be serviced in the order
+      P1, P2, and P3 and be guaranteed to finish.<br>
+      Hence the answer is 8.
+    <li>It would be legal to give up to 12 units of S to P2.
+      For i from 1 to 4 it would be safe to give i units to
+      P2 since, AFTER giving the i units, the processes could again be
+      serviced in the order P1, P2, P3 and all will finish.<br>
+      However if 5 units are given P2, the avail would become
+      (4,7), which is not enough to finish any process, let alone all
+      of them in some order.<br>
+      Thus the answer is 4.
+    <li>It would be legal to give up to 12 units of S to P3.
+      If one unit is given the avail is (4,11), and system is safe
+      since the processes can be serviced in the order P1, P2, P3 and
+      be guaranteed to finish.<br>
+      However, if 2 units are given, the avail is (4,10).
+      Although this is enough to finish P1, the avail is then (4,14),
+      which is not enough to finish either P2 or P3.<br>
+      Hence the answer is 1.
+  </ol>
+</p><hr/>
+
+<p><strong>Problem:</strong> 6.26</p>
+<p><strong>Solution:</strong>
+  First fix the typo as described in the class notes.</p>
+<p>The needs matrix is as follows:</p>
+<pre>
+  0 1 0 0 2
+  0 2 1 0 0
+  1 0 3 0 0
+  0 0 1 1 1
+</pre>
+<p>If x is 0, no process is guaranteed to complete. If x is 1, only
+  process D can run to completion.
+  When it is finished and returns its resources, the available vector
+  is 1 1 2 2 1.
+  Unfortunately, no process is now guaranteed to complete.</p>
+<p>If x is 2, again only D complete.
+  This time, after D runs and returns its resources, the available
+  vector is 1 1 3 2 1 and C can run.
+  After it finishes and returns its resources the available vector is
+  2 2 3 3 1, which will allow B to run and complete, and then A to run
+  and complete.
+  Therefore, the smallest value of x that is guaranteed to avoid a
+  deadlock is 2.</p><hr/>
+
+<p><strong>Problem:</strong> 6.29.</p>
+<p><strong>Solution:</strong> Yes.
+  Suppose all the mailboxes are empty.
+  Now A sends to B and waits for a reply, B sends to C and waits for a
+  reply, and C sends to A and waits for a reply.
+  All the conditions for deadlock are now fulfilled.</p><hr/>
+
+<p><strong>Problem:</strong> 6.38.</p>
+<p><strong>Solution:</strong> If both programs ask for Woofer first,
+  the computers will livelock with the endless sequence: request Woffer,
+  cancel request, request Woofer, cancel request, etc.
+  If one of them asks for the doghouse and the other asks for the dog,
+  we have a deadlock, which is detected by both parties and then
+  broken, but it is just repeated on the next cycle.
+  Either way, if both computers have been programmed to go after the
+  dog or the doghouse first, either livelock or deadlock ensues.
+  There is not really much difference between the two here.</p>
+  
+</body>
+</html>
+
+<!--
+Local Variables:
+tab-width: 4
+indent-tabs-mode: nil
+abbrev-mode: t
+End:
+-->

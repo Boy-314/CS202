@@ -1,0 +1,373 @@
+<html>
+  <head>
+    <title>Homework Solutions for Operating Systems</title>
+    <!-- The following is std, but needs access to cs.nyu.edu -->
+    <link rel="stylesheet" type="text/css"
+	  href="http://cs.nyu.edu/~gottlieb/css/courses.css"/>
+    <!-- Firefox treats the next as relative; I use it when off the net -->
+    <link rel="stylesheet" type="text/css"
+	  href="http:/~gottlieb/css/courses.css"/>
+    <link rel="shortcut icon" href="//cs.nyu.edu/~gottlieb/favicon.ico"/>
+  </head>
+
+<body>
+
+
+<h1>Chapter 2: Process Management</h1>
+
+<h2>2.1: Processes</h2>
+
+<p><strong>Problem:</strong> 2.1.
+  In Figure 2-2, three process states are shown.
+  In theory, with three states, there could be six transitions.
+  However, only four transitions are shown.
+  Are there any circumstances in which either of both of the missing
+  transitions might occur?</p>
+<p><strong>Solution:</strong> The transition from blocked to running
+  is conceivable (depends on terminology).  If all the processes in
+  the system are blocked on I/O and one I/O completes, this process
+  could be run immediately.
+  However, you could also say that the process became ready when the
+  I/O completes and then the scheduler immediately decided to run
+  it.</p>
+<p>A transition from ready to blocked is not possible.
+  A ready process is not running so cannot do I/O or anything else that
+  might block it.
+  It needs to run first.</p>
+<hr/>
+
+<p><strong>Problem:</strong> What is the key difference between
+  a trap and an interrupt?</p>
+<p><strong>Solution:</strong> A trap is caused by the program and is
+  synchronous with it.  If the program is run again and again, the
+  trap will always occur at exactly the same position in the
+  instruction stream.  An interrupt is caused by an external event and
+  its time is not reproducible.</p>
+<hr/>
+
+<p><strong>Problem:</strong> 2.7.
+  Multiple jobs can run in parallel and finish faster than if they had
+  run sequentially.
+  suppose that two jobs, each of which needs 10 minutes of CPU time,
+  start simultaneously.
+  How long with the last one take to complete if they run
+  sequentially?
+  How log if they run in parallel?
+  Assume 50% I/O wait.</p>
+<p><strong>Solution:</strong> If each job has 50% I/O wait, the it
+  will take 20 minutes complete in the absence of competition.
+  If run sequentially, the second one will finish 40 minutes after the
+  first one starts.
+  With two jobs, the approximate CPU utilization is 1-0.5<sup>2</sup>.
+  Thus each one gets 0.375 CPU minutes per minute of real time.
+  To accumulate 10 minutes of CPU time, a job must run for 10/0.375
+  minutes or about 26.67 minutes.
+  Thus running sequentially the jobs finish after 40 minutes, but
+  running in parallel they finish after 26.67 minutes, a saving of
+  13.33 minutes or about 33%.</p>
+
+<h2>2.2: Threads</h2>
+
+<p><strong>Problem:</strong> 2.15.
+  Why would a thread ever voluntarily give up the CPU by
+  calling <em>thread_yield</em>?
+  After all, since there is no periodic clock interrupt, it may never
+  get back the CPU?
+<p><strong>Solution:</strong> Threads in a process cooperate.
+  They are not hostile to one another.
+  If yielding is needed for the good of the application, then a thread
+  will yield.
+  After all, it is usually the same programmer who writes the code for
+  all the threads in one process.<hr/>
+
+<p><strong>Problem:</strong> 2.16.
+  Can a thread ever be preempted by a clock interrupt.
+  If so, under what circumstances?
+  If not, why not.
+<p><strong>Solution:</strong>
+  Certainly kernel-level threads can be preempted.
+  A user-level thread itself is not kernel-visible so is not
+  preemptable, but the process (or kernel-level thread) running this
+  user-level thread can be preempted.<hr/>
+
+<p><strong>Problem:</strong> 2.18 What is the biggest advantage of
+  implementing threads in user space?
+  What is the biggest disadvantage.
+<p><strong>Solution:</strong>
+  The biggest advantage is that no OS modification is needed.
+  The biggest disadvantage is that when a blocking system call or a
+  page fault occurs, all the threads in the process are blocked.</p>
+
+<h2>2.4: Processor Scheduling</h2>
+
+<p><strong>Problem:</strong> 2.26
+  In section 2.3.4, a  situation with a high-priority process, H, and a
+  low-priority process, L, was described, which led to H looping
+  forever.
+  Does the same problem occur if round-robin scheduling is used instead
+  of priority scheduling?
+  Discuss.
+<p><strong>Solution:</strong>
+  With round robin scheduling it works.
+  Sooner or later <i>L</i> will run,
+  and eventually it will leave its critical section.
+  The point is, with proirity
+  scheduling, <i>L</i> never gets to run at all; with round robin, it gets
+  a normal time slice periodically, so it has the chance to leave its critical
+  section.<hr/>
+
+<p><strong>Problem:</strong> 2.35
+  Measurements of a certain system have shown that the average process
+  runs for a time T before blocking on I/O.
+  A process switch requires a time S, which is effectively wasted
+  (overhead).
+  For round-robin scheduling with quantum Q, give a formula for the CPU
+  efficiency for each of the following:
+  <ol type="a">
+    <li>Q = &infin;
+    <li>Q &gt; T
+    <li>S &lt; Q &lt; T
+    <li>Q = S
+    <li>Q nearly 0
+  </ol>
+<p><strong>Solution:</strong>
+  The CPU efficiency is the useful time divided by the total CPU time.
+  <ol type="a">
+    <li>When Q = &infin;, the basic cycle
+      is for the process to run for <i>T</i> and undergo a process switch for
+      <i>S</i>.
+      Thus (a) has an efficiency of <i>T/(S+T)</i>.
+    <li>The identical analysis holds for Q &gt; T.
+    <li>When the quantum is shorter than <i>T</i>, each run of <i>T</i>
+      will requires <i>T/Q</i> process switches, wasting a time
+      <i>ST/Q</i>.  The efficiency is then <i>T/(T+ST/Q)</i>, which
+      reduces to <i>Q/(Q+S)</i>.
+    <li>Simply substitute <i>Q</i> for <i>S</i>and find that the efficiency
+      is 50 percent.
+    <li>As <i>Q</i> -> 0 the efficiency goes to 0.
+  </ol><hr/>
+
+<p><strong>Problem:</strong>
+  Round-robin schedulers normally maintain a list of all runnable
+  processes, with each process occurring exactly once in the list.
+  What would happen if a process occurred in the list?
+  Can you think of any reason for allowing this?
+<p><strong>Solution:</strong> If a process occurs multiple times in
+  the list, it will get multiple quanta per cycle.
+  This approach could be used to give more important processes a
+  larger share of the CPU.<hr/>
+
+<p><strong>Problem:</strong>
+  Give an argument favoring a large quantum; give an argument favoring a
+  small quantum.
+<p><strong>Solution:</strong> A large quantum is more efficient than a
+  small one, since fewer process switches take place that way.
+  On the other hand, interactive response time suffers, since the
+  average case delay until a process that has just become read gets to
+  run goes up linearly with the size of the quantum.<hr/>
+
+<p><table border=1 align="right">
+<tr><th>Process</th><th>CPU Time</th><th>Creation Time</th></tr>
+<tr><td>P1</td><td>20</td><td>0</td></tr>
+<tr><td>P2</td><td>3</td><td>3</td></tr>
+<tr><td>P3</td><td>2</td><td>5</td></tr>
+</table>
+<strong>Problem:</strong>
+<p>Consider the set of processes in the table to the right.
+  When does each process finish if RR scheduling is used with q=1, if
+  q=2, if q=3, if q=100.
+  First assume (unrealistically) that context switch time is zero.
+  Then assume it is .1.
+  Each process performs no I/O (i.e., no process ever blocks).
+  All times are in milliseconds.
+  The CPU time is the total time required for the process (excluding
+  context switch time).
+  The creation time is the time when the process is created.
+  So P1 is created when the problem begins and P3 is created 5
+  miliseconds later.
+  If two processes have equal priority (in RR this means if they both
+  enter the ready state at the same cycle), we give priority (in RR
+  this means place first on the queue) to the process with the
+  earliest creation time. If they also have the same creation time,
+  then we give priority to the process with the lower number.
+<p><strong>Solution:</strong>
+<p>q=1, context switch time is zero
+  <pre>
+    0   1   2   3   4   5   6   7   8   9  10  11  12 ... 25
+     P1  P1  P1  P1  P2  P1  P2  P3  P1  P2  P3  P1  ... P1
+  </pre>
+  So P2 finishes at 10, P3 at 11, and P1 at 25.
+<p>q=1, context switch time is 0.1
+  <pre>
+0  1  2  3  4 4.1  5.1 5.2  6.2 6.3  7.3 7.4  8.4 8.5  9.5 9.6  10.6 10.7  11.7 11.8 ... 25.8
+ P1 P1 P1 P1     P2       P1       P3       P2       P1       P3         P2           P1
+  </pre>
+  So P3 finishes at 10.6, P2 at 11.7, and P1 at 25.8.
+<p>q=2, context switch time is zero
+  <pre>
+    0   1   2   3   4   5   6   7   8   9  10  11  12 ... 25
+     P1  P1  P1  P1  P2  P2  P1  P1  P3  P3  P2  P1  ... P1
+  </pre>
+  So P3 finishes at 10, P2 at 11, and P1 at 25.
+<p>q=2, context switch time is 0.1.
+  <pre>
+    0  1  2  3  4 4.1  5.1  6.1 6.2  7.2  8.2 8.3  9.3  10.3 10.4  11.4 11.5  12.5 ... 25.5
+     P1 P1 P1 P1     P2   P2       P1   P1       P3   P3         P2         P1      P1
+  </pre>
+  So P3 finishes at 10.3, P2 at 11,4, and P1 at 25.5..
+<p>q=3, context switch time is zero.
+  <pre>
+    0   1   2   3   4   5   6   7   8   9  10  11  12 ... 25
+     P1  P1  P1  P1  P1  P1  P2  P2  P2  P3  P3  P1  ... P1
+</pre>
+<p>So P2 finishes at 9, P3 at 11, and P1 at 25.
+<p>q=3, context switch time is 0.1.
+  <pre>
+    0   1   2   3   4   5   6 6.1   7.1   8.1   9.1 9.2   10.2   11.2 11.3   12.3 ... 25.3
+     P1  P1  P1  P1  P1  P1      P2    P2    P2        P3     P3          P1       P1
+  </pre>
+  So P2 finishes at 9.1, P3 at 11.2, and P1 at 25.3.
+<p>q=100, context switch time is zero.
+  <pre>
+    0   1 ...  20  21  22  23  24  25
+     P1 ... P1   P2  P2  P2  P3  P3
+  </pre>
+  So P1 finishes at 20, P2 at 23, P3 at 25.
+<p>q=100, context switch time is 0.1.
+  <pre>
+    0   1 ...  20 20.1   21.1   22.1   23.1 23.2   24.2   25.2
+     P1 ... P1        P2     P2     P2          P3     P3
+  </pre>
+  So P1 finishes at 20, P2 at 23.1, P3 at 25.2<hr/>
+
+<p><b>Problem:</b>
+Redo the previous homework problem for q=2 and 0.1ms context switch
+time with the following change.
+Instead of assuming no process ever blocks, two of the processes each
+block once.
+Specifically, after process P1 runs for 3ms, it blocks for 2ms; P1
+never blocks again.
+P2 never blocks.
+After P3 runs for 1ms, it blocks for 1ms.
+<p><b>Solution:</b>
+I use R for Running; Y for readY; B for Blocked; U for Unstarted; T for Terminated
+<pre style="font-size: 100%">
+   0.0--1.0--2.0--3.0--3.1--4.1--5.0--5.1--5.2--6.2--7.2--7.3--8.3--8.4--9.3--9.4--9.5--10.5--11.5--11.6--12.6--12.7--25.7
+P1  | R  | R  | R  | B  | B  | B  | Y  | Y  | R  | R  | Y  | Y  | Y  | Y  | Y  | Y  |  R  |  R  |  Y  |  Y  |  Y  |  R  | T
+P2  | U  | U  | U  | Y  | R  | R  | R  | Y  | Y  | Y  | Y  | Y  | Y  | R  | R  | T  |  T  |  T  |  T  |  T  |  T  |  T  | T
+P3  | U  | U  | U  | U  | U  | U  | Y  | Y  | Y  | Y  | Y  | R  | B  | B  | Y  | Y  |  Y  |  Y  |  Y  |  R  |  T  |  T  | T
+</pre>
+So P1 terminates at 25.7, P2 at 9.4, and P3 at 12.6.<hr/>
+
+<p><strong>Problem:</strong> 2.38.
+  The CDC 6600 computers could handle up to 10 I/O processors
+  simultaneously using an interesting form of round-robin scheduling
+  called <b>processor sharing</b>.
+  A process switch occurred after each instruction, so instruction 1
+  came from process 1, instruction 2 came from process 2, etc.
+  The process switching was done by special hardware and the overhead
+  was zero.
+  If a process needed T sec to complete in the absence of competition,
+  how much time would it need if processor sharing was used with n
+  processes?
+<p><strong>Solution:</strong>
+  It will need <i>nT</i> sec.
+<p><b>Note</b>
+  This is not really processor sharing PS, it is rather an extreme form of
+  RR that closely approximates processor sharing.
+  In true PS all the processes run all the time each at a rate 1/n of
+  what they would run alone.
+  The answer above <i>nT</i> is, however, is the correct answer for true
+  processor sharing as well as for the approximation described in the
+  problem.
+  Actually for the approximation described there is a small range of
+  answers depending on whether T is considered process 1, process 2, etc.<hr/>
+
+<p><strong>Problem:</strong> 2.44.
+  Five jobs are waiting to be run.
+  Their expected run times are 9, 6, 3, 5, and X.
+  In what order should they be run in order to minimize average response
+  time?
+  (Your answer will depend on X.)
+<p><strong>Solution:</strong> Shortest Job First is the way to
+  minimize average response time.
+  <pre>
+    0 &lt; x &lt;= 3 : x, 3, 5, 6, 9.
+    3 &lt; x &lt;= 5 : 3, x, 5, 6, 9.
+    5 &lt; x &lt;= 6 : 3, 5, x, 6, 9.
+    6 &lt; x &lt;= 9 : 3, 5, 6, x, 9.
+    9 &lt; x      : 3, 5, 6, 9, x.
+  </pre><hr/>
+
+<p><strong>Problem:</strong> 2.45.
+  Five batch jobs A through E arrive at a computer center at almost
+  the same time.
+  The have estimated running times of 10, 6, 2, 4, an 8 minutes.
+  Their (externally determined) priorities are 3, 5, 2, 1, and 4,
+  respectively, with 5 being the highest priority.
+  For each of the following scheduling algorithms, determine the mean
+  process turnaround time.
+  Ignore context switching overhead.
+  <ol type="a">
+    <li>Round robin.
+    <li>Priority scheduling
+    <li>First-come, first-served (run in the order 10, 6, 2, 4, 8).
+    <li>Shortest job first.
+  </ol>
+<p><strong>Solution:</strong>
+  <ol type="a">
+    <li>For round robin (really processor sharing), during the first 10
+      minutes each job gets 1/5 of the CPU. At the end of 10 minutes, C
+      finishes. During the next 8 minutes, each job gets 1/4 of the CPU,
+      after which time D finishes. Then each of the three remaining jobs
+      gets 1/3 of the CPU for 6 minutes, until B finishes, and so
+      on. The finishing times for the five jobs are 10, 18, 24, 28, and
+      30, for an average of 22 minutes.
+    <li>For priority scheduling, B is run first. After 6 minutes it is
+      finished. The other jobs finish at 14, 24, 26, and 30, for an
+      average of 20 minutes.
+    <li>If the jobs run in the order A through E, they finish at 10, 16,
+      18, 22, and 30, for an average of 19.2 minutes.
+    <li>Finally, shortest job first yields finishing times of 2, 6, 12,
+      20, and 30, for and average of 14 minutes.
+  </ol>
+</p>
+
+<h2>2.3: Interprocessor Communication (IPC) and Coordination/Synchronization</h2>
+
+<p><strong>Problem:</strong>
+  Explain the difference between busy waiting and blocking process
+  synchronization.
+<p><strong>Solution:</strong>
+  With busy waiting, a process keeps testing for some condition.  It is
+  constantly using CPU, sitting in a tight loop.  With blocking, a process
+  gives up the CPU and is awakened later when the condition it is waiting
+  for has become true.  A blocked process does not use the CPU.</p>
+
+<h2>2.5: Classical IPC Problems</h2>
+
+<p><strong>Problem:</strong> 2.51.
+  In the solution to the dining philosophers problem, why is the state
+  variable set to HUNGRY int the procedure <em>take_forks</em>?
+<p><strong>Solution:</strong>
+  If a philosopher blocks, neighbors can later see that he is hungry by
+  checking his state, in <i>test</i>, so he can be awakened when the
+  forks are available.<hr/>
+
+<p><strong>Problem:</strong> 2.55.
+  Consider the procedure <em>put_forks</em>.  Suppose that the variable
+  <em>state[i]</em> was set to THINKING <em>after</em> the two calls to
+  <em>test</em>, rather than <em>before</em>.  How would this change
+  affect the solution?
+<p><strong>Solution:</strong> The change would mean that after a
+  philosopher J stopped eating, neither of his or her neighbors could be
+  chosen if they were hungry.
+  The reason is that when J tests to see if his right or left neighbor
+  can eat, the test will find J still eating.</p>
+
+
+<address>
+  <a href="http://cs.nyu.edu/~gottlieb">allan gottlieb</a>
+</address>
+</body>
+</html>
