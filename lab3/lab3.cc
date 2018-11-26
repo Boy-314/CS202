@@ -172,6 +172,19 @@ void optimistic(int T, int R, vector<int> units, vector<activity> activities)
 				continue;
 			}
 			
+			if(tasks[i].status == "computing")
+			{
+				cout << "\tcompute " << i + 1 << endl;
+				if(tasks[i].busy_cycles == cycle)
+				{
+					tasks[i].status = "ready";
+				}
+				else
+				{
+					continue;
+				}
+			}
+			
 			// if task already performed an activity
 			if(tasks[i].status == "granted from blocked vector")
 			{
@@ -221,7 +234,6 @@ void optimistic(int T, int R, vector<int> units, vector<activity> activities)
 				else
 				{
 					blocked.push_back(tasks[i].activities[0]);
-					tasks[task_number].busy_cycles++;
 					tasks[task_number].waiting_time++;
 					tasks[task_number].status = "blocked";
 					tasks[task_number].activities[0].status = "fulfilled";
@@ -248,7 +260,17 @@ void optimistic(int T, int R, vector<int> units, vector<activity> activities)
 				continue;
 			}
 			
-			// TODO: compute activity
+			// compute activity
+			if(tasks[i].activities[0].command == "compute" && tasks[tasks[i].activities[0].one - 1].status != "aborted" && tasks[tasks[i].activities[0].one - 1].status != "blocked")
+			{
+				int task_number = tasks[i].activities[0].one - 1;
+				int busy_for = tasks[i].activities[0].two;
+				tasks[task_number].busy_cycles = busy_for + cycle;
+				tasks[task_number].status = "computing";
+				cout << "\tcompute " << task_number + 1 << " " << tasks[task_number].busy_cycles << endl;
+				tasks[i].activities.erase(tasks[i].activities.begin());
+				continue;
+			}
 			
 			// terminate activity (does not require a cycle)
 			if(tasks[i].activities[0].command == "terminate" && tasks[tasks[i].activities[0].one - 1].status != "aborted" && tasks[tasks[i].activities[0].one - 1].status != "blocked")
