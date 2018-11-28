@@ -26,6 +26,20 @@ struct activity
 	string status;
 };
 
+/* 
+ * structure for each task
+ * task_number: task-number as seen in the assignment pdf
+ * resource_type: holds the resource type that the task is CURRENTLY working with
+ * busy_cycles: the cycle in which the task is computing until
+ * resources_held: holds a vector of all the resources the task is using
+ * status: used to identify what state the task is in (deadlocked, aborted, blocked, terminated, etc.)
+ * activities: vector of all activities that need to be performed on the specific task
+ * 			   all activities have a task-number in its first unsigned integer after the activity
+ * initial_claim: the tasks' initial claim from the initiate activity
+ * time_taken: the cycle in which the task terminates
+ * waiting_time: the amount of cycles in which the task is blocked
+ * percent_waiting: the percentage of all cycles before the task terminates that are spent blocked
+ */
 struct task
 {
 	int task_number;
@@ -40,11 +54,15 @@ struct task
 	double percent_waiting;
 };
 
+// method to check for deadlock
 bool deadlock(vector<task> tasks, vector<int> units, vector<activity> blocked)
 {
 	bool deadlock = true;
+	
+	// if task isn't blocked, return false
 	for(int i = 0; i < tasks.size(); i++)
 	{
+		// ignore tasks that have been aborted or terminated
 		if(tasks[i].status == "terminated" || tasks[i].status == "aborted")
 		{
 			continue;
@@ -54,11 +72,15 @@ bool deadlock(vector<task> tasks, vector<int> units, vector<activity> blocked)
 			return false;
 		}
 	}
+	
+	// iterate through blocked vector
 	for(int i = 0; i < blocked.size(); i++)
 	{
 		int resource_type = blocked[i].two - 1;
 		int units_left = units[resource_type];
 		int units_requested = blocked[i].three;
+		
+		// if the units left exceeds the number of units requested, return false
 		if(units_left >= units_requested)
 		{
 			deadlock = false;
@@ -70,7 +92,7 @@ bool deadlock(vector<task> tasks, vector<int> units, vector<activity> blocked)
 // method to print final output
 void print_output(vector<task> tasks, string resource_manager)
 {
-	cout << "\t\t\t" << resource_manager << endl;
+	cout << "\t\t\t" << resource_manager << endl;	
 	int total_time_taken = 0;
 	int total_waiting_time = 0;
 	double total_percent_waiting = 0;
@@ -127,7 +149,6 @@ void optimistic(int T, int R, vector<int> units, vector<activity> activities)
 	// keep looping until all tasks are completed
 	while(tasks_completed != T)
 	{
-		// cout << "cycle: " << cycle << endl;
 		
 		bool release = false; // if we need to release some resources at the end of a cycle
 		int to_release; // how many resources we might need to release at the end of a cycle
@@ -156,8 +177,6 @@ void optimistic(int T, int R, vector<int> units, vector<activity> activities)
 				tasks[task_number].resources_held[resource_type] = tasks[task_number].resources_held[resource_type] + request;
 				tasks[task_number].status = "granted from blocked vector";
 				tasks[task_number].activities[0].status = "fulfilled";
-				// cout << "\tgrant " << blocked[i].one << " " << blocked[i].two << " " << blocked[i].three << "\t\tfrom blocked" << endl;
-				// cout << "\tunits left " << units[resource_type] << endl;
 				blocked.erase(blocked.begin() + i);
 				i--;
 				size--;
@@ -168,7 +187,6 @@ void optimistic(int T, int R, vector<int> units, vector<activity> activities)
 			{
 				tasks[task_number].status = "grant denied in blocked vector";
 				tasks[task_number].waiting_time++;
-				// cout << "\tcannot grant " << blocked[i].one << " " << blocked[i].two << " " << blocked[i].three << "\tfrom blocked" << endl;
 			}
 		}
 		
@@ -184,7 +202,6 @@ void optimistic(int T, int R, vector<int> units, vector<activity> activities)
 			// if the task is computing, don't parse any of the activities
 			if(tasks[i].status == "computing")
 			{
-				// cout << "\tcompute " << i + 1 << endl;
 				if(tasks[i].busy_cycles == cycle)
 				{
 					tasks[i].status = "ready";
@@ -213,7 +230,6 @@ void optimistic(int T, int R, vector<int> units, vector<activity> activities)
 				int task_number = tasks[i].activities[0].one - 1;
 				tasks[task_number].status = "initiated";
 				tasks[task_number].activities[0].status = "fulfilled";
-				// cout << "\tinitiate " << task_number + 1 << endl;		
 				tasks[i].activities.erase(tasks[i].activities.begin());
 				continue;
 			}
@@ -234,8 +250,6 @@ void optimistic(int T, int R, vector<int> units, vector<activity> activities)
 					tasks[task_number].resources_held[resource_type] = tasks[task_number].resources_held[resource_type] + request;
 					tasks[task_number].status = "request granted";
 					tasks[task_number].activities[0].status = "fulfilled";
-					// cout << "\tgrant " << tasks[i].activities[0].one << " " << tasks[i].activities[0].two << " " << tasks[i].activities[0].three << endl;
-					// cout << "\tunits left " << units[resource_type] << endl;
 					tasks[i].activities.erase(tasks[i].activities.begin());
 					continue;
 				}
@@ -247,7 +261,6 @@ void optimistic(int T, int R, vector<int> units, vector<activity> activities)
 					tasks[task_number].waiting_time++;
 					tasks[task_number].status = "blocked";
 					tasks[task_number].activities[0].status = "fulfilled";
-					// cout << "\tcannot grant " << tasks[i].activities[0].one << " " << tasks[i].activities[0].two << " " << tasks[i].activities[0].three << endl;
 					tasks[i].activities.erase(tasks[i].activities.begin());
 					continue;
 				}
@@ -265,7 +278,6 @@ void optimistic(int T, int R, vector<int> units, vector<activity> activities)
 				tasks[task_number].resources_held[resource_type] = 0;
 				tasks[task_number].status = "released resources";
 				tasks[task_number].activities[0].status = "fulfilled";
-				// cout << "\trelease " << task_number + 1 << " " << resource_type + 1 << " " << units_released << endl;
 				tasks[i].activities.erase(tasks[i].activities.begin());
 				continue;
 			}
@@ -277,7 +289,6 @@ void optimistic(int T, int R, vector<int> units, vector<activity> activities)
 				int busy_for = tasks[i].activities[0].two;
 				tasks[task_number].busy_cycles = busy_for + cycle;
 				tasks[task_number].status = "computing";
-				// cout << "\tcompute " << task_number + 1 << " " << tasks[task_number].busy_cycles << endl;
 				tasks[i].activities.erase(tasks[i].activities.begin());
 				continue;
 			}
@@ -296,7 +307,6 @@ void optimistic(int T, int R, vector<int> units, vector<activity> activities)
 				tasks[task_number].activities[0].status = "fulfilled";
 				tasks[task_number].time_taken = cycle;
 				tasks[task_number].percent_waiting = 100.0 * tasks[task_number].waiting_time / cycle;
-				// cout << "\tterminate " << task_number + 1 << endl;
 				
 				tasks_completed++;
 				tasks[i].activities.erase(tasks[i].activities.begin());
@@ -310,7 +320,6 @@ void optimistic(int T, int R, vector<int> units, vector<activity> activities)
 			while(deadlock(tasks,units,blocked))
 			{
 				// release lowest numbered deadlocked task
-				// cout << "\tdeadlock\n";
 				for(int i = 0; i < tasks.size(); i++)
 				{
 					if(tasks[i].status == "blocked" || tasks[i].status == "denied waiting")
@@ -326,13 +335,6 @@ void optimistic(int T, int R, vector<int> units, vector<activity> activities)
 						tasks[tasks[i].task_number - 1].activities[0].status = "fulfilled";
 						tasks[tasks[i].task_number - 1].activities.clear();
 						tasks_completed++;
-						// cout << "\taborting task " << tasks[i].task_number << endl;
-						// cout << "\tunits left";
-						// for(int j = 0; j < R; j++)
-						// {
-							// cout << " " << units[j];
-						// }
-						// cout << endl;
 						break;
 					}
 				}
@@ -352,12 +354,12 @@ void optimistic(int T, int R, vector<int> units, vector<activity> activities)
 		{
 			units[release_type] = units[release_type] + to_release;
 			release = false;
-			// cout << "\tunits left: " << units[release_type] << endl;
 		}
 		
 		cycle++;
 	}
 	
+	// output to stdout
 	print_output(tasks,"FIFO");
 }
 
@@ -366,14 +368,12 @@ bool safe_state(vector<int> units, vector<task> tasks, activity request)
 {
 	// grant the request, then see if the state is safe
 	units[request.two - 1] = units[request.two - 1] - request.three;
-	// cout << "units of type " << request.two << ": " << units[request.two - 1] << endl;
 	if(units[request.two - 1] < 0)
 	{
 		return false;
 	}
 	tasks[request.one - 1].resource_type = request.two;
 	tasks[request.one - 1].resources_held[request.two - 1] += request.three;
-	// cout << "resources held: " << tasks[request.one - 1].resources_held[request.two - 1] << endl;
 	tasks[request.one - 1].status = "request granted to check if state is safe";
 	
 	while(true)
@@ -387,10 +387,8 @@ bool safe_state(vector<int> units, vector<task> tasks, activity request)
 				completed_processes++;
 			}
 		}
-		// cout << "completed processes: " << completed_processes << endl;
 		if(completed_processes == tasks.size())
 		{
-			// cout << "\tall terminated safe state\n";
 			return true;
 		}
 		
@@ -407,8 +405,6 @@ bool safe_state(vector<int> units, vector<task> tasks, activity request)
 
 			for(int j = 0; j < units.size(); j++)
 			{
-				// cout << "units[" << j << "]: " << units[j] << endl;
-				// cout << "tasks[" << i << "].initial_claim - tasks[" << i << "].resources_held[" << j << "]: " << tasks[i].initial_claim << " - " << tasks[i].resources_held[j] << " = " << tasks[i].initial_claim - tasks[i].resources_held[j] << endl;
 				if(units[j] < tasks[i].initial_claim - tasks[i].resources_held[j])
 				{
 					found = false;
@@ -418,7 +414,6 @@ bool safe_state(vector<int> units, vector<task> tasks, activity request)
 				else
 				{
 					index = i;
-					// cout << "found index " << index << endl;
 					found = true;
 				}
 			}
@@ -427,7 +422,6 @@ bool safe_state(vector<int> units, vector<task> tasks, activity request)
 		}
 		if(index == -1)
 		{
-			// cout << "\tno task found unsafe state\n";
 			return false;
 		}
 		else
@@ -437,14 +431,6 @@ bool safe_state(vector<int> units, vector<task> tasks, activity request)
 			{
 				units[j] = units[j] + tasks[index].resources_held[j];
 			}
-			
-			// cout << "units after release:";
-			// for(int j = 0; j < units.size(); j++)
-			// {
-				// cout << " " << units[j];
-			// }
-			// cout << endl;
-			
 			tasks[index].status = "terminated";
 		}
 	}
@@ -485,9 +471,7 @@ void banker(int T, int R, vector<int> units, vector<activity> activities)
 	bool safe = false;
 	
 	while(tasks_completed != T)
-	{
-		// cout << "cycle: " << cycle << endl;
-		
+	{		
 		bool release = false; // if we need to release some resources at the end of a cycle
 		int to_release; // how many resources we might need to release at the end of a cycle
 		int release_type; // type of resource we might need to release at the end of a cycle
@@ -517,15 +501,6 @@ void banker(int T, int R, vector<int> units, vector<activity> activities)
 				tasks[task_number].resources_held[resource_type] = tasks[task_number].resources_held[resource_type] + request;
 				tasks[task_number].status = "granted from blocked vector";
 				tasks[task_number].activities[0].status = "fulfilled";
-				
-				// cout << "\tgrant " << blocked[i].one << " " << blocked[i].two << " " << blocked[i].three << "\t\tfrom blocked" << endl;
-				// cout << "\tunits left";
-				// for(int i = 0; i < R; i++)
-				// {
-					// cout << " " << units[i];
-				// }
-				// cout << endl;
-				
 				blocked.erase(blocked.begin() + i);
 				i--;
 				size--;
@@ -536,8 +511,6 @@ void banker(int T, int R, vector<int> units, vector<activity> activities)
 			{
 				tasks[task_number].status = "grant denied in blocked vector";
 				tasks[task_number].waiting_time++;
-				
-				// cout << "\tcannot grant " << blocked[i].one << " " << blocked[i].two << " " << blocked[i].three << "\tfrom blocked" << endl;
 			}
 		}
 		
@@ -559,7 +532,6 @@ void banker(int T, int R, vector<int> units, vector<activity> activities)
 			// if the task is computing, don't parse any of the activities
 			if(tasks[i].status == "computing")
 			{
-				// cout << "\tcompute " << i + 1 << endl;
 				if(tasks[i].busy_cycles == cycle)
 				{
 					tasks[i].status = "ready";
@@ -604,9 +576,6 @@ void banker(int T, int R, vector<int> units, vector<activity> activities)
 					tasks[task_number].activities[0].status = "fulfilled";
 					tasks[task_number].activities.clear();
 					tasks_completed++;
-					
-					// cout << "\taborting from initiate activity " << task_number + 1 << endl << flush;
-					
 					continue;
 				}
 				
@@ -615,9 +584,6 @@ void banker(int T, int R, vector<int> units, vector<activity> activities)
 					tasks[task_number].status = "initiated";
 					tasks[task_number].activities[0].status = "fulfilled";
 					tasks[task_number].initial_claim = claim;
-					
-					// cout << "\tinitiate " << task_number + 1 << endl;		
-					
 					tasks[i].activities.erase(tasks[i].activities.begin());
 					continue;
 				}
@@ -649,9 +615,6 @@ void banker(int T, int R, vector<int> units, vector<activity> activities)
 						tasks[task_number].activities[0].status = "fulfilled";
 						tasks[task_number].activities.clear();
 						tasks_completed++;
-						
-						// cout << "\taborting from request activity " << task_number + 1 << endl << flush;
-						
 						continue;
 					}
 					units[resource_type] = units[resource_type] - request;
@@ -659,15 +622,6 @@ void banker(int T, int R, vector<int> units, vector<activity> activities)
 					tasks[task_number].resources_held[resource_type] = tasks[task_number].resources_held[resource_type] + request;
 					tasks[task_number].status = "request granted";
 					tasks[task_number].activities[0].status = "fulfilled";
-					
-					// cout << "\tgrant " << tasks[i].activities[0].one << " " << tasks[i].activities[0].two << " " << tasks[i].activities[0].three << endl;
-					// cout << "\tunits left";
-					// for(int i = 0; i < R; i++)
-					// {
-						// cout << " " << units[i];
-					// }
-					// cout << endl;	
-					
 					tasks[i].activities.erase(tasks[i].activities.begin());
 					continue;
 				}
@@ -679,9 +633,6 @@ void banker(int T, int R, vector<int> units, vector<activity> activities)
 					tasks[task_number].waiting_time++;
 					tasks[task_number].status = "blocked";
 					tasks[task_number].activities[0].status = "fulfilled";
-					
-					// cout << "\tcannot grant " << tasks[i].activities[0].one << " " << tasks[i].activities[0].two << " " << tasks[i].activities[0].three << endl;
-					
 					tasks[i].activities.erase(tasks[i].activities.begin());
 					continue;
 				}
@@ -702,9 +653,6 @@ void banker(int T, int R, vector<int> units, vector<activity> activities)
 				}
 				tasks[task_number].status = "released resources";
 				tasks[task_number].activities[0].status = "fulfilled";
-				
-				// cout << "\trelease " << task_number + 1 << " " << resource_type + 1 << " " << units_released << endl;
-				
 				tasks[i].activities.erase(tasks[i].activities.begin());
 				continue;
 			}
@@ -716,9 +664,6 @@ void banker(int T, int R, vector<int> units, vector<activity> activities)
 				int busy_for = tasks[i].activities[0].two;
 				tasks[task_number].busy_cycles = busy_for + cycle;
 				tasks[task_number].status = "computing";
-				
-				// cout << "\tcompute " << task_number + 1 << " " << tasks[task_number].busy_cycles << endl;
-				
 				tasks[i].activities.erase(tasks[i].activities.begin());
 				continue;
 			}
@@ -740,9 +685,6 @@ void banker(int T, int R, vector<int> units, vector<activity> activities)
 				tasks[task_number].activities[0].status = "fulfilled";
 				tasks[task_number].time_taken = cycle;
 				tasks[task_number].percent_waiting = 100.0 * tasks[task_number].waiting_time / cycle;
-				
-				// cout << "\tterminate " << task_number + 1 << endl;
-				
 				tasks_completed++;
 				tasks[i].activities.erase(tasks[i].activities.begin());
 				continue;
@@ -754,18 +696,12 @@ void banker(int T, int R, vector<int> units, vector<activity> activities)
 		{
 			units[release_type] = units[release_type] + to_release;
 			release = false;
-			
-			// cout << "\tunits left";
-			// for(int i = 0; i < R; i++)
-			// {
-				// cout << " " << units[i];
-			// }
-			// cout << endl;
 		}
 
 		cycle++;
 	}
 	
+	// output to stdout
 	print_output(tasks,"BANKER'S");
 }
 
@@ -810,8 +746,11 @@ int main(int argc, char * argv[])
 		}
 	}
 	
+	// run optimistic manager
 	optimistic(T,R,units,activities);
 	cout << endl << endl;
+	
+	// run bankers algorithm
 	banker(T,R,units,activities);
 	
 	return 0;
