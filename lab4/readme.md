@@ -10,4 +10,4 @@ To run normally, execute `./lab3 M P S J N R` where:
 * N is the number of references for each process.
 * R is the replacement algorithm.
 
-NOTE: THIS LAB DOES NOT WORK IF YOU PROVIDE A FILENAME THAT DOES NOT EXIST
+NOTE: THIS LAB DOES NOT HAVE A DEBUGGING OR SHOW RANDOM OUTPUT
