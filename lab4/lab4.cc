@@ -14,6 +14,8 @@
 #include <vector>
 using namespace std;
 
+// pager with replacement algorithms
+// last_frame: for use with lifo algorithm
 struct pager
 {
 	int last_frame;
@@ -23,8 +25,8 @@ struct pager
 };
 
 /* globals */
-pager pager;
-int cycle;
+pager pager;					// pager structure
+int cycle;						// time counter for the entire program
 int M;							// M, the machine size in words.
 int P;							// P, the page size in words.
 int S;							// S, the size of each process, i.e., the references are to virtual addresses 0..S-1.
@@ -45,8 +47,6 @@ vector<int> time_table;			// time of frames
 vector<int> last;				// how long since the last reference
 
 vector<vector<double>> probabilities;		// vector of tasks and their probabilities
-
-int detailed;
 
 // last in first out replacement algorithm
 int pager::lifo(int frames)
@@ -98,12 +98,7 @@ void check_for_page_fault(int process)
 	int frame;
 	int page_number = references[process]/P;
 	
-	if(detailed == 1)
-	{
-		cout << process + 1 << " references word " << references[process] << " (page " << page_number << ") at time " << cycle << ": ";
-	}
-	
-	// find page
+	// find page if possible
 	for(int i = 0; i < num_of_frames; i++)
 	{
 		if(!found)
@@ -113,14 +108,11 @@ void check_for_page_fault(int process)
 				found = true;
 				// cout << "\nowner[" << 1 << "]: " << owner[1] << endl;
 				last[i] = 0;
-				if(detailed == 1)
-				{
-					cout << "Hit in frame " << i << endl;
-				}
 			}
 		}
 	}
 	
+	// if no page found, check if there are free pages first
 	if(!found)
 	{
 		faults[process]++;
@@ -134,10 +126,6 @@ void check_for_page_fault(int process)
 			owner[frame] = process;
 			// cout << "\nupdating owner[" << frame << "]: " << owner[frame] << endl;
 			last[frame] = 0;
-			if(detailed == 1)
-			{
-				cout << "Fault, using free frame " << frame << endl;
-			}
 		}
 		
 		// no free pages
@@ -163,10 +151,6 @@ void check_for_page_fault(int process)
 			// evict
 			time_owned[owner[frame]] += time_table[frame];
 			evicts[owner[frame]]++;
-			if(detailed == 1)
-			{
-				cout << "Fault, evicting page " << page_table[frame] << " of " << owner[frame] + 1 << " from frame " << frame << endl;
-			}
 			
 			// replace
 			page_table[frame] = page_number;
@@ -222,6 +206,7 @@ void next_reference(int process)
 		// cout << "else;reference: " << reference << endl;
 	}
 	
+	// update reference depending on probability generated randomly
 	references[process] = reference;
 }
 
@@ -239,14 +224,14 @@ int main(int argc, char * argv[])
 	J = atoi(argv[4]);
 	N = atoi(argv[5]);
 	R = argv[6];
-	detailed = atoi(argv[7]);
 	
+	// set up quantum, and initialize global variables
 	int quantum = 3;
 	cycle = 1;
 	pager.last_frame = 0;
 	num_of_frames = M/P;
 	free_frames = num_of_frames;
-
+	random_numbers.open("random-numbers.txt");
 	for(int i = 0; i < 4; i++)
 	{
 		references.push_back(0);
@@ -271,9 +256,6 @@ int main(int argc, char * argv[])
 	cout << "The job mix number is " << J << "." << endl;
 	cout << "The number of references per process is " << N << "." << endl;
 	cout << "The replacement algorithm is " << R << "." << endl;
-	
-	// open random numbers file
-	random_numbers.open("random-numbers.txt");
 	
 	// A,B,C,D: as seen in the lab pdf file
 	double A = 0;
@@ -366,11 +348,13 @@ int main(int argc, char * argv[])
 		// cout << endl;
 	// }
 	
+	// setup default references for all processes
 	for(int i = 0; i < num_of_processes; i++)
 	{
 		references[i] = (111 * (i + 1)) % S;
 	}
 	
+	// round robin
 	for(int i = 0; i < N/quantum; i++)
 	{
 		for(int j = 0; j < num_of_processes; j++)
@@ -391,6 +375,7 @@ int main(int argc, char * argv[])
 		}
 	}
 	
+	// edge case for when N/quantaum has a non-zero remainder
 	for(int i = 0; i < num_of_processes; i++)
 	{
 		for(int j = 0; j < N % quantum; j++)
@@ -441,5 +426,8 @@ int main(int argc, char * argv[])
 	{
 		cout << "The total number of faults is " << total_num_of_faults << " and the overall average residency is " << total_residency_time/total_evicts << "." << endl;
 	}
+	
+	// close file
+	random_numbers.close();
 	return 0;
 }
